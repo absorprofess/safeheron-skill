@@ -1,109 +1,52 @@
-# Web3 API & MPC Sign Reference
+# Web3 API Reference
 
-## Web3 API
+Web3 Wallet Accounts support arbitrary EVM signing: raw messages, typed data (EIP-712), and raw EVM transactions.
 
-Web3 Wallet Accounts support arbitrary EVM signing operations: raw messages, typed data (EIP-712), and raw transactions.
-
-### Create a Web3 Wallet Account
-```
-POST /v1/web3/account/create
-```
+## Imports
 ```java
-CreateWeb3AccountRequest req = new CreateWeb3AccountRequest();
-req.setAccountName("DeFi Signer");
-CreateWeb3AccountResponse resp = web3Service.createAccount(req);
-String web3AccountKey = resp.getAccountKey();
-String ethAddress = resp.getEthAddress();
+import com.safeheron.client.api.Web3ApiService;
+import com.safeheron.client.config.SafeheronConfig;
+import com.safeheron.client.request.*;
+import com.safeheron.client.response.*;
+import com.safeheron.client.utils.ServiceCreator;
+import com.safeheron.client.utils.ServiceExecutor;
 ```
 
-### List Web3 Wallet Accounts
-```
-POST /v1/web3/account/list
-```
-
-### Retrieve a Single Web3 Wallet Account
-```
-POST /v1/web3/account/one
+## Create API Service
+```java
+Web3ApiService web3Api = ServiceCreator.create(Web3ApiService.class, safeheronConfig);
 ```
 
 ---
 
-### ethSign (sign raw hash)
-```
-POST /v1/web3/sign/eth
-```
+## Notes on Web3 Service
+
+The exact request/response class names for Web3 operations (ethSign, personalSign, ethSignTypedData, ethSignTransaction) follow the same package conventions:
+- Requests: `com.safeheron.client.request.*`
+- Responses: `com.safeheron.client.response.*`
+- All calls: `ServiceExecutor.execute(web3Api.someMethod(request))`
+
+For authoritative class names, see the official source:
+https://github.com/Safeheron/safeheron-api-sdk-java/tree/main/src/main/java/com/safeheron/client
+
+---
+
+## General Pattern for All Web3 Calls
 ```java
-CreateEthSignRequest req = new CreateEthSignRequest();
+// 1. Create request object (class name matches the operation)
+SomeWeb3Request req = new SomeWeb3Request();
 req.setCustomerRefId(UUID.randomUUID().toString());
 req.setAccountKey(web3AccountKey);
-req.setDataToSign("0xDeadBeef...");  // 32-byte hex hash
-CreateEthSignResponse resp = web3Service.createEthSign(req);
-String signTxKey = resp.getTxKey();
-```
+// ... set operation-specific fields
 
-### personalSign (sign message with prefix)
-```
-POST /v1/web3/sign/personal
-```
-```java
-CreatePersonalSignRequest req = new CreatePersonalSignRequest();
-req.setCustomerRefId(UUID.randomUUID().toString());
-req.setAccountKey(web3AccountKey);
-req.setMessage("Hello Safeheron");  // UTF-8 string
-CreatePersonalSignResponse resp = web3Service.createPersonalSign(req);
-```
+// 2. Execute
+SomeWeb3Response resp = ServiceExecutor.execute(web3Api.someMethod(req));
+String txKey = resp.getTxKey();
 
-### ethSignTypedData (EIP-712)
-```
-POST /v1/web3/sign/typedData
-```
-```java
-CreateEthSignTypedDataRequest req = new CreateEthSignTypedDataRequest();
-req.setCustomerRefId(UUID.randomUUID().toString());
-req.setAccountKey(web3AccountKey);
-req.setTypedDataJson("{\"types\":{...},\"domain\":{...},\"message\":{...}}");
-req.setVersion("V4");  // V1 | V3 | V4
-CreateEthSignTypedDataResponse resp = web3Service.createEthSignTypedData(req);
-```
-
-### ethSignTransaction (sign raw EVM tx)
-```
-POST /v1/web3/sign/transaction
-```
-```java
-CreateEthSignTransactionRequest req = new CreateEthSignTransactionRequest();
-req.setCustomerRefId(UUID.randomUUID().toString());
-req.setAccountKey(web3AccountKey);
-req.setTo("0xContractAddress");
-req.setValue("0");            // in Wei as string
-req.setNonce("42");
-req.setGasLimit("100000");
-req.setGasPrice("20000000000");
-req.setData("0xABCDEF...");   // encoded calldata
-req.setChainId("1");          // 1=mainnet, 137=polygon, etc.
-CreateEthSignTransactionResponse resp = web3Service.createEthSignTransaction(req);
-```
-
-### Retrieve a Web3 Signature
-```
-POST /v1/web3/sign/one
-```
-```java
-GetWeb3SignRequest req = new GetWeb3SignRequest();
-req.setTxKey(signTxKey);
-GetWeb3SignResponse resp = web3Service.getSign(req);
+// 3. Poll for result
+// ... poll with a "getOne" method until status == SUCCESS
+// 4. Get signature from response
 String signature = resp.getSignature();
-String status = resp.getTransactionStatus();  // SUCCESS when signed
-```
-
-### Cancel Signature
-```
-POST /v1/web3/sign/cancel
-```
-
-### Web3 Sign Transaction List
-```
-POST /v1/web3/sign/list
 ```
 
 ---
@@ -116,97 +59,10 @@ SUBMITTED → WAIT_AUDIT → WAIT_SIGN → SUCCESS
 
 ---
 
-## MPC Sign API
-
-MPC Sign allows arbitrary raw message signing using MPC key shares, without involving Safeheron's transaction routing.
-
-### Create MPC Sign Wallet Account
-```
-POST /v1/mpcsign/account/create
-```
-Same pattern as regular account creation; returns `accountKey`.
-
-### Create an MPC Sign Transaction
-```
-POST /v1/mpcsign/create
-```
-```java
-CreateMpcSignRequest req = new CreateMpcSignRequest();
-req.setCustomerRefId(UUID.randomUUID().toString());
-req.setAccountKey(mpcAccountKey);
-req.setSignAlg("SECP256K1");        // SECP256K1 | ED25519
-req.setDataList(Arrays.asList(
-    new MpcSignData("hash1_hex", "note1"),
-    new MpcSignData("hash2_hex", "note2")
-));
-CreateMpcSignResponse resp = mpcService.createMpcSign(req);
-String mpctTxKey = resp.getTxKey();
-```
-
-### Retrieve a Single MPC Sign Transaction
-```
-POST /v1/mpcsign/one
-```
-```java
-GetMpcSignRequest req = new GetMpcSignRequest();
-req.setTxKey(mpctTxKey);
-GetMpcSignResponse resp = mpcService.getMpcSign(req);
-String status = resp.getTransactionStatus();
-// On SUCCESS:
-List<SignedData> results = resp.getSignedDataList();
-results.forEach(d -> {
-    System.out.println("r: " + d.getR());
-    System.out.println("s: " + d.getS());
-    System.out.println("v: " + d.getV());
-});
-```
-
-### MPC Sign Transaction List
-```
-POST /v1/mpcsign/list
-```
-
----
-
-## ERC-20 Token Transfer via MPC Sign (Full Example)
-
-This pattern uses Web3j + Safeheron MPC Sign to transfer tokens without exposing private keys:
-
-```java
-// 1. Build ERC-20 transfer calldata
-Function function = new Function(
-    "transfer",
-    Arrays.asList(new Address(toAddress), new Uint256(amount)),
-    Collections.emptyList()
-);
-String encodedFunction = FunctionEncoder.encode(function);
-
-// 2. Build unsigned transaction
-RawTransaction rawTx = RawTransaction.createTransaction(
-    nonce, gasPrice, gasLimit,
-    erc20ContractAddress, BigInteger.ZERO, encodedFunction
-);
-byte[] encodedTx = TransactionEncoder.encode(rawTx, chainId);
-byte[] txHash = Hash.sha3(encodedTx);
-
-// 3. Send hash to Safeheron MPC Sign
-CreateMpcSignRequest req = new CreateMpcSignRequest();
-req.setCustomerRefId(UUID.randomUUID().toString());
-req.setAccountKey(accountKey);
-req.setSignAlg("SECP256K1");
-req.setDataList(Arrays.asList(new MpcSignData(Numeric.toHexString(txHash), "erc20-transfer")));
-mpcService.createMpcSign(req);
-
-// 4. Poll for completion and recover signature
-// ... poll getMpcSign until SUCCESS ...
-SignedData sig = resp.getSignedDataList().get(0);
-
-// 5. Assemble and broadcast signed transaction
-Sign.SignatureData sigData = new Sign.SignatureData(
-    Numeric.hexStringToByteArray(sig.getV()),
-    Numeric.hexStringToByteArray(sig.getR()),
-    Numeric.hexStringToByteArray(sig.getS())
-);
-byte[] signedTx = TransactionEncoder.encode(rawTx, sigData);
-String txHash = web3j.ethSendRawTransaction(Numeric.toHexString(signedTx)).send().getTransactionHash();
-```
+## Supported Sign Types
+| Operation | Description |
+|-----------|-------------|
+| ethSign | Sign a 32-byte raw hash |
+| personalSign | Sign an arbitrary message with Ethereum prefix |
+| ethSignTypedData | Sign EIP-712 structured data (V1/V3/V4) |
+| ethSignTransaction | Sign a raw EVM transaction |

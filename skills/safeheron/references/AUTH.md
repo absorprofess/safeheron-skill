@@ -13,7 +13,6 @@ Randomly generate:
 ### Step 3: Encrypt bizContent
 ```
 Algorithm: AES/GCM/NoPadding
-Input: JSON string
 Output: base64(AES_GCM_Encrypt(jsonString, key, iv))  → bizContent field
 ```
 
@@ -25,7 +24,7 @@ Output: base64(RSA_Encrypt(aesKey + iv))  → key field
 ```
 
 ### Step 5: Build signature string
-Sort all parameters (excluding `rsaType` and `aesType`) by key ascending:
+Sort all parameters by key ascending (exclude `rsaType` and `aesType`):
 ```
 apiKey=...&bizContent=...&key=...&timestamp=...
 ```
@@ -62,60 +61,42 @@ bizContent=...&code=...&key=...&message=...&timestamp=...
 
 ### Step 2: Verify signature
 ```
-Algorithm: SHA256WithRSA
-Verify using: Safeheron's RSA Public Key + sig field
+Algorithm: SHA256WithRSA — verify with Safeheron's RSA Public Key
 ```
 If verification fails, reject the response.
 
 ### Step 3: Decrypt the AES key
 ```
 Algorithm: RSA/ECB/OAEPWithSHA-256AndMGF1Padding
-Decrypt key field using YOUR RSA Private Key
-→ Yields 48-byte AES key+IV
+Decrypt key field using YOUR RSA Private Key → 48-byte AES key+IV
 ```
 
 ### Step 4: Decrypt bizContent
 ```
 Algorithm: AES/GCM/NoPadding
-Decrypt bizContent using the recovered AES key and IV
-→ Yields plaintext JSON
+→ Yields plaintext JSON response
 ```
 
----
-
-## Java SDK: Config Object
-```java
-SafeheronConfig config = new SafeheronConfig();
-config.setApiKey("YOUR_API_KEY");
-config.setPrivateKey("YOUR_BASE64_RSA_PRIVATE_KEY");
-config.setSafeheronPublicKey("SAFEHERON_RSA_PUBLIC_KEY_BASE64");
-config.setBaseUrl("https://api.safeheron.vip");
-config.setRequestTimeout(20000);
-```
-
-The SDK handles all encryption/decryption/signing automatically.
+> The Java SDK handles all of the above automatically via `ServiceCreator` + `ServiceExecutor`.
 
 ---
 
 ## OpenSSL Key Generation
 ```bash
-# Generate 4096-bit RSA private key
+# Generate RSA 4096-bit private key
 openssl genpkey -out api_private.pem -algorithm RSA -pkeyopt rsa_keygen_bits:4096
 
-# Extract public key
+# Export public key (upload to Safeheron Console)
 openssl rsa -in api_private.pem -out api_public.pem -pubout
 
-# Get base64-encoded private key for SDK config
+# Convert to PKCS8 (use base64 content as rsaPrivateKey in SafeheronConfig builder)
 openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in api_private.pem -out api_pkcs8.pem
 ```
-
-Upload `api_public.pem` to the Safeheron Console. Use `api_pkcs8.pem` contents (stripped of headers) as `privateKey` in SDK config.
 
 ---
 
 ## Security Checklist
-- [ ] RSA private key stored securely (never in source code)
-- [ ] IP address registered in Console whitelist
+- [ ] RSA private key stored securely (env var or secret manager, never in source code)
+- [ ] Server IP registered in Safeheron Console whitelist
 - [ ] Always verify response `sig` before trusting `bizContent`
 - [ ] Use HTTPS only (`https://api.safeheron.vip`)
-- [ ] Rotate API keys periodically
