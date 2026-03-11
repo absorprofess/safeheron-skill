@@ -38,6 +38,13 @@ TxKeyResult resp = ServiceExecutor.execute(transactionApi.createTransactions(req
 String txKey = resp.getTxKey();  // save this — it's the unique transaction ID
 ```
 
+## Retrieve a Transaction
+```java
+OneTransactionsRequest req = new OneTransactionsRequest();
+req.setTxKey(txKey);
+OneTransactionsResponse resp = ServiceExecutor.execute(transactionApi.oneTransactions(req));
+```
+
 ---
 
 ## Transaction Status Reference
