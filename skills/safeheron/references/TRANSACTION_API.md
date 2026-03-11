@@ -24,8 +24,18 @@ https://github.com/Safeheron/safeheron-api-sdk-java/blob/main/src/test/java/com/
 
 General pattern:
 ```java
-// Request class names follow the API endpoint, e.g. CreateTransactionsRequest
-// All calls follow: ServiceExecutor.execute(transactionApi.someMethod(request))
+CreateTransactionRequest req = new CreateTransactionRequest();
+req.setSourceAccountKey(accountKey);
+req.setSourceAccountType("VAULT_ACCOUNT");
+req.setCoinKey("ETH_GOERLI");
+req.setDestinationAccountType("ONE_TIME_ADDRESS");
+req.setDestinationAddress(toAddress);
+req.setTxAmount("0.001");
+req.setCustomerRefId(UUID.randomUUID().toString());
+req.setTxFeeLevel("LOW");
+
+TxKeyResult resp = ServiceExecutor.execute(transactionApi.createTransactions(req));
+String txKey = resp.getTxKey();  // save this — it's the unique transaction ID
 ```
 
 ---
