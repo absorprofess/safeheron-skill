@@ -31,7 +31,7 @@ String accountKey = resp.getAccountKey();  // save this — it's the unique wall
 ```java
 // Request class: CreateAccountCoinRequest (not "AddCoinRequest")
 // Response class: CreateAccountCoinResponse (List)
-CreateAccountCoinResponse req = new CreateAccountCoinRequest();
+CreateAccountCoinRequest req = new CreateAccountCoinRequest();
 req.setAccountKey(accountKey);
 req.setCoinKey("ETH_GOERLI");  // or "ETHEREUM_ETH", "BITCOIN_BTC", etc.
 
