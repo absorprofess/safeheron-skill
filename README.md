@@ -1,22 +1,29 @@
 # safeheron-skill
 
-Claude Code skill for Safeheron API
+**AI Skill for Safeheron MPC Custody API** — Works with Claude Code and Cursor
 
-## Skills
+> Use natural language to generate, debug, and troubleshoot Safeheron API integrations. No more digging through docs.
 
-| Skill         | Description   |
-|---------------|---------------|
-| **safeheron** | Safeheron API |
+---
 
-## Installation
+## ✨ What This Skill Does
 
-Copy `skills/safeheron/` into your Claude Code skills directory:
+- **Code Generation** — Describe your requirements in natural language; the AI generates production-ready Java SDK code
+- **Full API Coverage** — Wallets, transactions, MPC signing, Web3, webhooks, whitelists, Gas Station, AML/KYT, Co-Signer
+
+---
+
+## 📦 Installation
+
+### Claude Code
 
 ```bash
 # Project-level
+mkdir -p .claude/skills
 cp -r skills/safeheron .claude/skills/safeheron
 
 # Or user-level
+mkdir -p ~/.claude/skills
 cp -r skills/safeheron ~/.claude/skills/safeheron
 ```
 
@@ -25,6 +32,48 @@ Or install as a plugin:
 ```bash
 claude plugin add safeheron/safeheron-skill
 ```
+
+### Cursor
+
+Cursor natively supports the same `SKILL.md` format and also reads from `.claude/skills/` for compatibility — so one install covers both tools.
+
+```bash
+# Option A — shared install (works for both Claude Code AND Cursor)
+mkdir -p .claude/skills
+cp -r skills/safeheron .claude/skills/safeheron
+
+# Option B — Cursor native path (project-level)
+mkdir -p .cursor/skills
+cp -r skills/safeheron .cursor/skills/safeheron
+
+# Option B — Cursor native path (user-level, applies to all projects)
+mkdir -p ~/.cursor/skills
+cp -r skills/safeheron ~/.cursor/skills/safeheron
+```
+
+> **Note:** `~/.cursor/skills-cursor/` is Cursor's built-in read-only directory — do **not** install there. Use `~/.cursor/skills/` instead.
+
+---
+
+
+## 🚀 Example Prompts
+
+Once installed, try these in Claude Code or Cursor:
+
+- `"Use Safeheron skill to set up my first API call"`
+- `"Generate Java code to create a wallet and add ETH and USDT"`
+- `"Create a transaction to send 0.01 ETH from wallet abc to address 0x1234..."`
+- `"Help me set up the API Co-Signer approval callback service"`
+- `"My API call returns error 1010 — what's wrong and how do I fix it?"`
+- `"Write a webhook handler that processes incoming transaction events"`
+- `"Generate Spring Boot configuration class for Safeheron SDK"`
+---
+
+## Resources
+
+- [Safeheron API Docs](https://docs.safeheron.com/api/en.html)
+- [Java SDK GitHub](https://github.com/Safeheron/safeheron-api-sdk-java)
+- [Safeheron Console](https://www.safeheron.com)
 
 ## License
 
