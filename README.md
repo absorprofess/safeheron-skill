@@ -23,7 +23,7 @@ cp -r skills/safeheron ~/.claude/skills/safeheron
 Or install as a plugin:
 
 ```bash
-claude plugin add kaichen/safeheron-skill
+claude plugin add safeheron/safeheron-skill
 ```
 
 ## License
