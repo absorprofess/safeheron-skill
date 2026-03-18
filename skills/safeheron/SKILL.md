@@ -21,6 +21,27 @@ Covers all 5 onboarding steps:
 
 ---
 
+## 🔐 Security-First: Read Before Writing Any Code
+
+**These security principles are non-negotiable and must be reflected in all generated code:**
+
+1. **Credential injection** — Always load API keys, RSA private keys, and platform public keys from environment variables or a secrets manager. Never hardcode them.
+2. **`customerRefId` first** — Generate and persist `customerRefId` to your DB **before** calling any Safeheron create API. This enables safe retry on network timeout.
+3. **Webhook signature verification** — Every webhook payload must have its `sig` verified using Safeheron's RSA public key before any processing. Never skip this.
+4. **No status rollback** — Webhook handlers must never downgrade a transaction status (e.g., `COMPLETED` → `CONFIRMING`). Terminal statuses are final.
+5. **Webhook IP whitelist** — Only accept webhook traffic from Safeheron's egress IPs: `18.162.105.64`, `18.167.22.59`, `18.167.21.182`
+6. **Webhook + REST API polling** — Always implement both: Webhook as primary, REST API polling as fallback. Never rely on only one.
+7. **`failOnAml: true` by default** — Always include AML checks; only disable explicitly when the business case is confirmed.
+8. **`failOnContract: true` by default** — Block contract address destinations unless explicitly required by the use case.
+9. **Policy: least privilege** — API Keys, approval policies, and server permissions must be scoped to the minimum required.
+10. **Minimum deposit filter** — Filter dust/address-pollution deposits by enforcing a minimum deposit amount in your system.
+
+→ **[SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** — Complete pre-launch checklist
+→ **[POLICY_STRATEGY.md](references/POLICY_STRATEGY.md)** — Policy configuration guide with approval tiers
+→ **[BUSINESS_PATTERNS.md](references/BUSINESS_PATTERNS.md)** — Deposit/withdrawal/sweep patterns with security baked in
+
+---
+
 ## ⚠️ Critical SDK Pattern (Read First)
 
 The Java SDK does **NOT** use service classes like `SafeheronClient`, `AccountService`, or `TransactionService`.
@@ -100,6 +121,9 @@ System.out.println("accountKey: " + resp.getAccountKey());
 | Topic | File |
 |-------|------|
 | **Getting Started (0 → first call)** | **[GETTING_STARTED.md](references/GETTING_STARTED.md)** |
+| **Security pre-launch checklist** | **[SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** |
+| **Policy configuration & approval tiers** | **[POLICY_STRATEGY.md](references/POLICY_STRATEGY.md)** |
+| **Deposit/withdrawal/sweep patterns** | **[BUSINESS_PATTERNS.md](references/BUSINESS_PATTERNS.md)** |
 | RSA+AES auth flow & key generation | [AUTH.md](references/AUTH.md) |
 | Maven/Gradle setup, Spring Boot config | [SDK_SETUP.md](references/SDK_SETUP.md) |
 | Wallet account CRUD & coin management | [WALLET_API.md](references/WALLET_API.md) |
@@ -112,7 +136,7 @@ System.out.println("accountKey: " + resp.getAccountKey());
 | Gas Station status & auto-refill | [GAS_API.md](references/GAS_API.md) |
 | Tools API — AML address checker | [TOOLS_API.md](references/TOOLS_API.md) |
 | Webhook events, handler, re-push | [WEBHOOK.md](references/WEBHOOK.md) |
-| API Co-Signer / Approval Callback | [COSIGNER.md](references/COSIGNER.md) |
+| API Co-Signer / Approval Callback + security deployment | [COSIGNER.md](references/COSIGNER.md) |
 | Error codes & troubleshooting | [ERROR_CODES.md](references/ERROR_CODES.md) |
 | FAQ — real-world Q&A (CN+EN) | [FAQ.md](references/FAQ.md) |
 
@@ -120,8 +144,9 @@ System.out.println("accountKey: " + resp.getAccountKey());
 
 ## Important Notes
 
+### SDK Usage
 - **IP Whitelisting** is mandatory — register server IP in Safeheron Console first. API calls from unregistered IPs are rejected.
-- **Idempotency** — always set `customerRefId` to your own unique reference ID (UUID). Error `9001` = duplicate refId.
+- **Idempotency** — generate `customerRefId` (UUID) and **save to DB before calling Safeheron**. On timeout, retry with the same ID. Error `9001` = duplicate refId (query existing instead of creating new).
 - All monetary amounts are **strings** — never use float/double.
 - `requestTimeout` is **Long** (milliseconds), not int. Use `20000L`.
 - `pageSize` / `pageNumber` in list requests are **Long**, not int.
@@ -130,3 +155,17 @@ System.out.println("accountKey: " + resp.getAccountKey());
 - **MPC Sign** requires a special policy — contact Safeheron Support to enable (error `9028` = policy not found).
 - Common auth errors: `1010` = wrong Safeheron platform public key; `1012` = wrong private key or not PKCS8 format.
 - SDK is **backward compatible** — upgrading only adds new methods, never removes old ones.
+
+### Security (Generated Code Must Always Follow These)
+- **Never hardcode** API keys, RSA keys, or any credentials — use env vars or a secrets manager.
+- **Webhook signature must be verified** on every incoming request before processing.
+- **Webhook server must IP-whitelist** Safeheron's egress IPs: `18.162.105.64`, `18.167.22.59`, `18.167.21.182`.
+- **Never roll back transaction status** — if DB status is already terminal (`COMPLETED`/`FAILED`/`REJECTED`), ignore late-arriving Webhook events.
+- **Always implement both** Webhook (primary) and REST API polling (fallback) for transaction state sync.
+- **`failOnAml: true`** is the secure default — only disable when explicitly required.
+- **`failOnContract: true`** is the secure default — only disable when sending to contract addresses is intentional.
+- **Deposit wallets** should use `hiddenOnUI: true` and `accountTag: "DEPOSIT"` for Auto-Sweep compatibility.
+- **Minimum deposit amount** must be configured in your system to filter dust/address-pollution attacks.
+- **Policy: minimum privilege** — restrict API Key permissions, source wallets, and approval chains to what each use case strictly needs.
+- **API Co-Signer host** must be in a private isolated network with no public internet inbound access.
+- Subscribe to `ILLEGAL_IP_REQUEST`, `NO_MATCHING_TRANSACTION_POLICY`, and `GAS_BALANCE_WARNING` webhook events as operational alerts.

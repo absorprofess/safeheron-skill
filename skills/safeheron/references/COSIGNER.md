@@ -266,3 +266,73 @@ sudo ./cosigner export-public-key   # Export Co-Signer identity public key
 
 See the SDK repository for a working callback demo:
 https://github.com/Safeheron/safeheron-api-sdk-java
+
+---
+
+## Security Deployment Requirements (API Co-Signer Host)
+
+These requirements apply to the server where API Co-Signer is deployed. Non-compliance can result in asset loss.
+
+### Mandatory Security Principles
+
+| Principle | Requirement |
+|-----------|------------|
+| Strong passwords | All accounts (DB, cloud, OS) must use randomly generated strong passwords — no weak/default credentials |
+| MFA everywhere | Enable 2FA/MFA on every account and service that supports it |
+| Minimum privilege | Each account/role has only the permissions needed for its specific function |
+| Minimum exposure | Close all unnecessary ports. Only port `9999` (business) needs to be open |
+| Secure secret storage | Store all secrets (passwords, private keys, Secret Keys) in a dedicated secrets manager (e.g., 1Password, AWS Secrets Manager). Never transmit secrets via chat/email/documents |
+
+### Host Security Controls
+
+| Control | Description |
+|---------|-------------|
+| Network isolation | Deploy Co-Signer in a **private isolated network**. No public internet inbound access |
+| IP whitelist | Only the Safeheron API gateway and your internal systems can reach the Co-Signer host |
+| MFA (host login) | All host access requires MFA |
+| CWPP | Cloud Workload Protection Platform — real-time threat monitoring on the Co-Signer instance |
+| EDR/XDR | Endpoint/Extended Detection & Response — continuous threat detection and automated response |
+| SIEM | Collect host login and system activity logs; configure real-time alerts |
+| PAM | Privileged Access Management — audit all privileged operations on the host |
+
+### Required Network Connectivity (Outbound Only)
+
+API Co-Signer has **zero inbound** from the internet. Configure firewall to allow only these outbound connections:
+
+**Always required (runtime):**
+- `https://api.safeheron.vip:443`
+- `wss://gm-gateway.safeheron.vip:443`
+- MySQL (your DB host)
+- Approval Callback Service (your internal service)
+
+**If using AWS KMS:**
+- `https://*.amazonaws.com:443`
+- `https://*.amazonaws.com.cn:443`
+
+**If using Alibaba Cloud KMS:**
+- `https://*.cryptoservice.kms.aliyuncs.com:443`
+
+**If using GCP Cloud KMS:**
+- `https://*.cloudkms.googleapis.com:443`
+- `https://cloudkms.googleapis.com:443`
+- `http://metadata.google.internal:80`
+
+**Only during install/update:**
+- `registry.gitlab.com:443`
+- `https://prod-safeheron-openapi.s3.ap-east-1.amazonaws.com:443`
+
+**Only on first install (Docker bootstrap):**
+- `https://get.docker.com:443`
+- `https://download.docker.com:443`
+- `https://api.github.com:443`
+- `https://github.com:443`
+
+### Callback Service Security
+
+The Approval Callback Service must:
+
+1. **Verify the Co-Signer identity signature** on every request before processing
+2. **Only accept connections from the Co-Signer host IP** — configure firewall/IP whitelist on the callback service
+3. **Validate `customerRefId`** — reject any callback for a `customerRefId` not found in your DB
+4. **Validate amount and destination** — cross-check against the original withdrawal order
+5. **Respond within 5 seconds** — Co-Signer will time out otherwise (sync server time via NTP)

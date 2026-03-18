@@ -224,6 +224,113 @@ Manual webhook re-triggers: **10 per minute** per team.
 
 ---
 
+## Security Requirements for Webhook Endpoints
+
+### 1. Verify Signature Before Processing (Mandatory)
+
+Every webhook payload **must be signature-verified** before any business logic runs. Never trust the decrypted content if the signature check fails.
+
+```java
+@PostMapping("/safeheron/webhook")
+public ResponseEntity<String> handleWebhook(@RequestBody String rawBody,
+                                             HttpServletRequest httpReq) {
+    // Step 0: IP whitelist check — only accept from Safeheron egress IPs
+    String clientIp = httpReq.getRemoteAddr();
+    if (!SAFEHERON_EGRESS_IPS.contains(clientIp)) {
+        log.warn("Rejected webhook from unknown IP: {}", clientIp);
+        return ResponseEntity.status(403).build();
+    }
+
+    try {
+        WebhookParam param = objectMapper.readValue(rawBody, WebhookParam.class);
+
+        // Step 1: verify sig using Safeheron's RSA public key — REJECT if fails
+        boolean sigValid = verifySignature(param, safeheronRsaPublicKey);
+        if (!sigValid) {
+            log.error("Webhook signature verification FAILED — possible tampering");
+            return ResponseEntity.ok("OK");  // still return 200 to avoid retry storms
+        }
+
+        // Step 2: decrypt and enqueue for async processing
+        String decrypted = decryptBizContent(param);
+        eventQueue.offer(decrypted);
+
+    } catch (Exception e) {
+        log.error("Webhook error", e);
+    }
+
+    return ResponseEntity.ok("OK");  // always 200 — never block Safeheron
+}
+```
+
+### 2. IP Whitelist — Only Accept Safeheron's Egress IPs
+
+Configure your webhook server to **only accept connections from**:
+- `18.162.105.64`
+- `18.167.22.59`
+- `18.167.21.182`
+
+Reject all other sources at the network/firewall level, not just in application code.
+
+### 3. Avoid Status Rollback
+
+Webhook events may arrive out of order due to Safeheron's async retry mechanism. Your handler **must never downgrade a status**:
+
+```java
+private boolean shouldUpdateStatus(String currentStatus, String newStatus) {
+    // Terminal statuses are final — never overwrite them
+    Set<String> terminalStatuses = Set.of("COMPLETED", "SUCCESS", "FAILED", "REJECTED", "CANCELLED", "REVOKED");
+    if (terminalStatuses.contains(currentStatus)) {
+        return false;  // already in terminal state — ignore late events
+    }
+    return true;
+}
+```
+
+**Example:** If your DB shows `COMPLETED` and you receive a late `CONFIRMING` event — keep `COMPLETED`.
+
+### 4. Idempotency by `txKey`
+
+Safeheron may deliver the same event multiple times (retry on non-200). Always check if you've already processed a given `txKey` + `transactionStatus` combination before acting.
+
+### 5. Anti-Dust Attack Filtering for Deposits
+
+External actors can send tiny amounts to your users' deposit addresses to pollute your webhook stream. Protect against this:
+
+```java
+// Filter dust/address-pollution transactions
+BigDecimal minDeposit = getMinimumDepositAmount(coinKey);
+BigDecimal txAmount   = new BigDecimal(event.get("txAmount").asText());
+
+if (txAmount.compareTo(minDeposit) < 0) {
+    log.info("Ignoring dust deposit: {} {} (below minimum {})", txAmount, coinKey, minDeposit);
+    return;
+}
+```
+
+### 6. Subscribe to Security Events
+
+Always handle these non-transaction events:
+
+```java
+switch (eventType) {
+    case "ILLEGAL_IP_REQUEST":
+        // API called from non-whitelisted IP — investigate immediately
+        alertSecurityTeam("Safeheron API called from illegal IP", event);
+        break;
+    case "NO_MATCHING_TRANSACTION_POLICY":
+        // Transaction has no matching policy — possible misconfiguration or attack
+        alertOpsTeam("Transaction blocked: no matching policy", event);
+        break;
+    case "GAS_BALANCE_WARNING":
+        // Gas station balance low — may block future transactions
+        alertOpsTeam("Gas balance warning", event);
+        break;
+}
+```
+
+---
+
 ## Best Practices
 
 - Return HTTP 200 as fast as possible — offload all processing to a queue/async worker.
@@ -231,3 +338,6 @@ Manual webhook re-triggers: **10 per minute** per team.
 - Implement idempotency by checking `txKey` before acting — Safeheron may deliver duplicates on retry.
 - Schedule a periodic call to `/v1/webhook/pushFailed` as a safety net.
 - Auto Sweep (归集), Gas refill, speed-up, and batch transfers all generate standard webhook events.
+- Verify the webhook signature on **every single request** — never skip this step in production.
+- Apply IP whitelist at the firewall level, not just application code.
+- Poll the transaction list API periodically as a fallback to catch events missed due to webhook downtime.
