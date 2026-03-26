@@ -39,37 +39,89 @@ Webhook payloads use the **same AES+RSA encryption scheme** as API responses. Th
 
 ## Webhook Handler Example (Spring Boot)
 
+### Step 1 — Register WebhookConverter as a Bean
+
 ```java
-import com.safeheron.client.webhook.WebhookParam;
+@Configuration
+public class SafeheronWebhookConfig {
 
-@PostMapping("/safeheron/webhook")
-public ResponseEntity<String> handleWebhook(@RequestBody String rawBody) {
-    try {
-        // 1. Parse the outer envelope
-        ObjectMapper mapper = new ObjectMapper();
-        WebhookParam webhookParam = mapper.readValue(rawBody, WebhookParam.class);
+    // Safeheron platform public key — from Web Console → Settings → API → Webhook
+    @Value("${safeheron.webhook.platform-public-key}")
+    private String safeheronWebHookRsaPublicKey;
 
-        // 2. Verify signature and decrypt bizContent
-        //    The SDK does NOT auto-decrypt webhooks — implement using your config:
-        //    Step A: verify sig using safeheronRsaPublicKey
-        //    Step B: decrypt 'key' field with your rsaPrivateKey → aesKey+iv (48 bytes)
-        //    Step C: AES/GCM/NoPadding decrypt bizContent
+    // Your own RSA private key — paired with the public key uploaded to Console
+    @Value("${webhook.rsa-private-key}")
+    private String webHookRsaPrivateKey;
 
-        // 3. Parse decrypted payload
-        String decryptedJson = decrypt(webhookParam, safeheronConfig);
-        JsonNode event = mapper.readTree(decryptedJson);
-
-        // 4. Route by event type — process asynchronously
-        String txStatus = event.path("transactionStatus").asText();
-        String txKey    = event.path("txKey").asText();
-        processEventAsync(txKey, txStatus, event);
-
-    } catch (Exception e) {
-        log.error("Webhook processing error", e);
+    @Bean
+    public WebhookConverter webhookConverter() {
+        // PEM headers (-----BEGIN PUBLIC KEY-----) are stripped automatically by the SDK
+        return new WebhookConverter(safeheronWebHookRsaPublicKey, webHookRsaPrivateKey);
     }
+}
+```
 
-    // Always respond HTTP 200 immediately — do NOT block
-    return ResponseEntity.ok("OK");
+### Step 2 — Webhook Controller
+
+```java
+import com.safeheron.client.webhook.WebHook;
+import com.safeheron.client.webhook.WebHookBizContent;
+import com.safeheron.client.webhook.WebhookConverter;
+import com.safeheron.client.webhook.MPCSignParam;
+import com.safeheron.client.webhook.TransactionParam;
+import com.safeheron.client.webhook.Web3SignParam;
+
+@RestController
+public class WebhookController {
+
+    @Resource
+    private ObjectMapper objectMapper;
+
+    @Resource
+    private WebhookConverter webhookConverter;
+
+    @PostMapping("/safeheron/webhook")
+    public WebHookResponse handleWebhook(@RequestBody String rawBody) {
+        try {
+            WebHook param = objectMapper.readValue(rawBody, WebHook.class);
+
+            // convert() handles everything internally:
+            //   1. Verifies RSA signature — throws SafeheronException if invalid
+            //   2. Decrypts AES key using your RSA private key
+            //   3. Decrypts bizContent
+            //   4. Deserializes eventDetail to the correct concrete type
+            WebHookBizContent content = webhookConverter.convert(param);
+
+            // Route by eventType — offload to async queue in production
+            switch (content.getEventType()) {
+                case "TRANSACTION_CREATED":
+                case "TRANSACTION_CUSTOMIZED_CONFIRMING":
+                case "TRANSACTION_STATUS_CHANGED":
+                    TransactionParam tx = (TransactionParam) content.getEventDetail();
+                    // handle transaction
+                    break;
+                case "MPC_SIGN_CREATED":
+                case "MPC_SIGN_STATUS_CHANGED":
+                    MPCSignParam mpc = (MPCSignParam) content.getEventDetail();
+                    // handle MPC sign
+                    break;
+                case "WEB3_SIGN_CREATED":
+                case "WEB3_SIGN_STATUS_CHANGED":
+                    Web3SignParam web3 = (Web3SignParam) content.getEventDetail();
+                    // handle Web3 sign
+                    break;
+            }
+
+        } catch (Exception e) {
+            log.error("Webhook processing error", e);
+        }
+
+        // Always respond HTTP 200 immediately — never block
+        WebHookResponse response = new WebHookResponse();
+        response.setCode("200");
+        response.setMessage("SUCCESS");
+        return response;
+    }
 }
 ```
 
@@ -83,28 +135,29 @@ public ResponseEntity<String> handleWebhook(@RequestBody String rawBody) {
 |------------|---------|
 | `TRANSACTION_CREATED` | New transaction submitted |
 | `TRANSACTION_STATUS_CHANGED` | Any status transition |
-| `TRANSACTION_CONFIRMATION_COUNT` | Custom block confirmation count reached |
+| `TRANSACTION_CUSTOMIZED_CONFIRMING` | Custom block confirmation count reached |
 
 **Transaction Event Payload (decrypted bizContent) Key Fields:**
-| Field | Description |
-|-------|-------------|
-| `txKey` | Safeheron transaction key |
-| `customerRefId` | Your reference ID |
-| `txHash` | On-chain transaction hash |
-| `transactionStatus` | Current status |
-| `transactionSubStatus` | Sub-status |
-| `coinKey` | Coin identifier |
-| `txAmount` | Amount (string) |
-| `sourceAccountKey` | Sender wallet |
-| `sourceAddress` | Sender address |
-| `destinationAddress` | Recipient address |
-| `txFee` | Transaction fee paid |
-| `blockHeight` | Confirmed block height |
-| `createTime` | Unix timestamp (ms) |
-| `completedTime` | Unix timestamp (ms) of completion |
-| `customerExt1` | Custom field 1 |
-| `customerExt2` | Custom field 2 |
-| `amlLock` | AML status: `YES` / `NO` |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Safeheron transaction key |
+| `customerRefId` | String | Your reference ID |
+| `txHash` | String | On-chain transaction hash |
+| `transactionStatus` | String | Current status |
+| `transactionSubStatus` | String | Sub-status |
+| `coinKey` | String | Coin identifier |
+| `txAmount` | String | Amount (string) |
+| `sourceAccountKey` | String | Sender wallet |
+| `sourceAddress` | String | Sender address |
+| `destinationAddress` | String | Recipient address |
+| `txFee` | String | Transaction fee paid |
+| `blockHeight` | Long | Confirmed block height |
+| `createTime` | Long | Unix timestamp (ms) |
+| `completedTime` | Long | Unix timestamp (ms) of completion |
+| `customerExt1` | String | Custom field 1 |
+| `customerExt2` | String | Custom field 2 |
+| `amlLock` | String | AML status: `YES` / `NO` |
 
 ---
 
@@ -116,15 +169,16 @@ public ResponseEntity<String> handleWebhook(@RequestBody String rawBody) {
 | `MPC_SIGN_STATUS_CHANGED` | Status transition |
 
 **MPC Sign Event Payload Key Fields:**
-| Field | Description |
-|-------|-------------|
-| `txKey` | MPC sign request key |
-| `customerRefId` | Your reference ID |
-| `transactionStatus` | Status |
-| `transactionSubStatus` | Sub-status |
-| `sourceAccountKey` | Wallet used for signing |
-| `signAlg` | `Secp256k1` or `Ed25519` |
-| `dataList` | List of `{data, sig}` items (sig available on SUCCESS) |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | MPC sign request key |
+| `customerRefId` | String | Your reference ID |
+| `transactionStatus` | String | Status |
+| `transactionSubStatus` | String | Sub-status |
+| `sourceAccountKey` | String | Wallet used for signing |
+| `signAlg` | String | `Secp256k1` or `Ed25519` |
+| `dataList` | Array | List of `{data, sig}` items (sig available on SUCCESS) |
 
 ---
 
@@ -136,15 +190,16 @@ public ResponseEntity<String> handleWebhook(@RequestBody String rawBody) {
 | `WEB3_SIGN_STATUS_CHANGED` | Status transition |
 
 **Web3 Sign Event Payload Key Fields:**
-| Field | Description |
-|-------|-------------|
-| `txKey` | Web3 sign request key |
-| `customerRefId` | Your reference ID |
-| `transactionStatus` | Status |
-| `subjectType` | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
-| `accountKey` | Web3 wallet key |
-| `sourceAddress` | Signing address |
-| `message` / `messageHash` / `transaction` | Signed content (type-dependent) |
+
+| Field | Type   | Description |
+|-------|--------|-------------|
+| `txKey` | String | Web3 sign request key |
+| `customerRefId` | String | Your reference ID |
+| `transactionStatus` | String | Status |
+| `subjectType` | String | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
+| `accountKey` | String | Web3 wallet key |
+| `sourceAddress` | String | Signing address |
+| `message` / `messageHash` / `transaction` | Object | Signed content (type-dependent) |
 
 ---
 
@@ -165,6 +220,7 @@ public ResponseEntity<String> handleWebhook(@RequestBody String rawBody) {
 | `ILLEGAL_IP_REQUEST` | API called from non-whitelisted IP |
 | `NO_MATCHING_TRANSACTION_POLICY` | Transaction has no matching approval policy |
 | `GAS_BALANCE_WARNING` | Gas station balance below threshold |
+| `AML_KYT_ALERT` | KYT Alert Notification |
 
 ---
 
@@ -174,11 +230,11 @@ If your server missed events or returned non-200, you can request re-delivery:
 
 ```java
 // Re-push events for a specific transaction
-TransactionApiService transactionApi = ServiceCreator.create(TransactionApiService.class, config);
-// POST /v1/webhook/transaction/repush
+WebhookApiService webhookApi = ServiceCreator.create(WebhookApiService.class, config);
+// POST /v1/webhook/resend
 
 // Retry all previously failed webhook events
-// POST /v1/webhook/pushFailed
+// POST /v1/webhook/resend/failed
 ```
 
 Safeheron retry schedule on non-200 response:
@@ -188,23 +244,7 @@ Safeheron retry schedule on non-200 response:
 
 ## Custom Block Confirmation Count
 
-Configure custom confirmation thresholds per blockchain in Safeheron Console. Once enabled, it applies to **both incoming and outgoing** transactions on that chain. A `TRANSACTION_CONFIRMATION_COUNT` event fires when the threshold is reached.
-
----
-
-## Manual Webhook Trigger Rate Limit
-
-Manual webhook re-triggers: **10 per minute** per team.
-
----
-
-## Webhook URL Configuration Notes
-
-- Modifying the webhook URL takes effect immediately — new events go to the new URL.
-- Webhook only stops if the URL is **deleted** (not just modified).
-- New/modify/delete webhook URLs require no admin approval — changes are instant.
-- Webhook URL must be publicly accessible from Safeheron's IP range:
-  `18.162.105.64`, `18.167.22.59`, `18.167.21.182`
+Configure custom confirmation thresholds per blockchain in Safeheron Console. Once enabled, it applies to **both incoming and outgoing** transactions on that chain. A `TRANSACTION_CUSTOMIZED_CONFIRMING` event fires when the threshold is reached.
 
 ---
 
@@ -242,7 +282,7 @@ public ResponseEntity<String> handleWebhook(@RequestBody String rawBody,
     }
 
     try {
-        WebhookParam param = objectMapper.readValue(rawBody, WebhookParam.class);
+        WebHook param = mapper.readValue(rawBody, WebHook.class);
 
         // Step 1: verify sig using Safeheron's RSA public key — REJECT if fails
         boolean sigValid = verifySignature(param, safeheronRsaPublicKey);
@@ -279,7 +319,7 @@ Webhook events may arrive out of order due to Safeheron's async retry mechanism.
 ```java
 private boolean shouldUpdateStatus(String currentStatus, String newStatus) {
     // Terminal statuses are final — never overwrite them
-    Set<String> terminalStatuses = Set.of("COMPLETED", "SUCCESS", "FAILED", "REJECTED", "CANCELLED", "REVOKED");
+    Set<String> terminalStatuses = Set.of("COMPLETED", "SUCCESS", "FAILED", "REJECTED", "CANCELLED");
     if (terminalStatuses.contains(currentStatus)) {
         return false;  // already in terminal state — ignore late events
     }
@@ -326,6 +366,10 @@ switch (eventType) {
         // Gas station balance low — may block future transactions
         alertOpsTeam("Gas balance warning", event);
         break;
+    case "AML_KYT_ALERT":
+        // KYT alert notification — transactions may be marked by aml
+        alertOpsTeam("KYT alert notification", event);
+        break;
 }
 ```
 
@@ -336,7 +380,7 @@ switch (eventType) {
 - Return HTTP 200 as fast as possible — offload all processing to a queue/async worker.
 - Store the raw encrypted payload in a database before processing, for auditability.
 - Implement idempotency by checking `txKey` before acting — Safeheron may deliver duplicates on retry.
-- Schedule a periodic call to `/v1/webhook/pushFailed` as a safety net.
+- Schedule a periodic call to `/v1/transactions/one` as a safety net.
 - Auto Sweep (归集), Gas refill, speed-up, and batch transfers all generate standard webhook events.
 - Verify the webhook signature on **every single request** — never skip this step in production.
 - Apply IP whitelist at the firewall level, not just application code.

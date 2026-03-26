@@ -5,6 +5,7 @@
 <dependency>
     <groupId>com.safeheron</groupId>
     <artifactId>api-sdk-java</artifactId>
+    <!-- Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases -->
     <version>1.0.9</version>
 </dependency>
 ```

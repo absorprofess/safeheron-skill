@@ -48,7 +48,7 @@ CreateAccountResponse resp = ServiceExecutor.execute(accountApi.createAccount(re
 String accountKey = resp.getAccountKey();  // store: bind this accountKey ↔ userId in your DB
 ```
 
-**`hiddenOnUI: true`** — prevents clutter in the Safeheron UI for exchange-style deployments with thousands of wallets.
+**`hiddenOnUI: true`** — prevents clutter in the Safeheron UI.
 
 **`accountTag: "DEPOSIT"`** — required if you use Auto-Sweep (the sweep engine only targets wallets tagged `DEPOSIT`).
 
@@ -60,8 +60,8 @@ CreateAccountCoinV2Request coinReq = new CreateAccountCoinV2Request();
 coinReq.setAccountKey(accountKey);
 coinReq.setCoinKeyList(Arrays.asList("ETHEREUM_ETH", "USDT(ERC20)_ETHEREUM_USDT"));
 
-List<CreateAccountCoinResponse> coins = ServiceExecutor.execute(accountApi.createAccountCoinV2(coinReq));
-String depositAddress = coins.get(0).getAddress();  // show this to the user as their deposit address
+CreateAccountCoinV2Response res = ServiceExecutor.execute(accountApi.createAccountCoinV2(coinReq));
+String depositAddress = res.getCoinAddressList().get(0).getAddressList().get(0).getAddress(); // show this to the user as their deposit address
 ```
 
 ---
@@ -112,7 +112,7 @@ Poll the transaction list periodically to catch any missed webhooks:
 ```java
 // Run every few minutes as a background job
 ListTransactionsV2Request req = new ListTransactionsV2Request();
-req.setPageSize(50L);
+req.setLimit(50L);
 req.setCreateTimeMin(lastPolledTimestampMs);
 req.setTransactionStatus("SUCCESS");   // or omit to get all statuses
 
@@ -131,10 +131,10 @@ for (TransactionsResponse tx : txList) {
 
 ## 4. Asset Consolidation (Sweep) & Gas Top-Up
 
-After users deposit, the platform consolidates funds from individual hot wallets into withdrawal wallets / cold storage.
+After users deposit, the platform consolidates funds from individual deposit wallets into hot wallets.
 
 ```
-User Hot Wallet 1 ──→ (add gas ETH) ──→ Sweep USDT ──→ Hot Withdrawal Wallet
+User Hot Wallet 1 ──→ (add gas ETH) ──→ Sweep USDT ──→ Hot Wallet
 User Hot Wallet 2 ──→ (add gas ETH) ──→ Sweep USDT ──┘
 ```
 
@@ -153,10 +153,10 @@ If you implement sweeping yourself:
 
 1. Listen for `COMPLETED` inflow transactions via webhook
 2. Check if the wallet has enough gas for the fee (use Gas Station API if gas is insufficient)
-3. Create an `INTERNAL_TRANSFER` transaction from the deposit wallet to the consolidation wallet
+3. Create an `INTERNAL_TRANSFER` transaction from the deposit wallet to the hot wallet
 
 ```java
-// Internal transfer to consolidation wallet
+// Internal transfer to hot wallet
 CreateTransactionRequest req = new CreateTransactionRequest();
 req.setCustomerRefId(UUID.randomUUID().toString());  // store this before calling API
 req.setCoinKey("USDT(ERC20)_ETHEREUM_USDT");
@@ -164,7 +164,7 @@ req.setTxAmount(sweepAmount);
 req.setSourceAccountKey(depositWalletAccountKey);
 req.setSourceAccountType("VAULT_ACCOUNT");
 req.setDestinationAccountType("VAULT_ACCOUNT");
-req.setDestinationAccountKey(consolidationWalletAccountKey);
+req.setDestinationAccountKey(hotWalletAccountKey);
 req.setTxFeeLevel("MIDDLE");
 
 TxKeyResult resp = ServiceExecutor.execute(transactionApi.createTransactions(req));
@@ -253,7 +253,7 @@ withdrawalOrderDao.save(order);
 
 if ("COMPLETED".equals(newStatus)) {
     notifyUserWithdrawalCompleted(order);
-} else if ("FAILED".equals(newStatus) || "REJECTED".equals(newStatus)) {
+} else if ("FAILED".equals(newStatus) || "REJECTED".equals(newStatus) || "CANCELLED".equalsIgnoreCase(newStatus)) {
     refundUserBalance(order);
     notifyUserWithdrawalFailed(order);
 }
@@ -276,7 +276,7 @@ For exchange-style deployments, configure the Safeheron policy engine to route t
 This requires:
 1. API Co-Signer deployed (for auto tier)
 2. Policy Engine configured in Web Console
-3. Approval Callback Service implemented (for Co-Signer to consult your business logic)
+3. Approval Callback Service implemented (for Co-Signer to callback your business logic)
 
 See [POLICY_STRATEGY.md](POLICY_STRATEGY.md) for the complete configuration reference.
 

@@ -52,12 +52,14 @@ for (GasStatusResponse.Configuration cfg : resp.getConfiguration()) {
 ### GasStatusResponse Structure
 
 **`gasBalance` (List):**
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `symbol` | String | Coin symbol (e.g. ETH, BNB) |
 | `amount` | String | Current gas station balance |
 
 **`configuration` (List):**
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `network` | String | Blockchain network name (Ethereum, TRON, BNB Smart Chain, Arbitrum, Polygon) |
@@ -81,10 +83,24 @@ GasTransactionsGetByTxKeyResponse resp = ServiceExecutor.execute(
 
 ### GasTransactionsGetByTxKeyResponse Fields
 
+| Field | Type |  Description |
+|-------|------|-------------|
+| `txKey` | String |  The queried transaction key |
+| `symbol` | String |  Transaction fee coin |
+| `totalAmount` | String |  Total fee amount across all records |
+| `detailList` | `List<Detail>` |  Gas refill records associated with this transaction |
+
+**GasTransactionsGetByTxKeyResponse.Detail Fields:**
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `txKey` | String | The queried transaction key |
-| `gasRecords` | List | Gas refill records associated with this transaction |
+| `gasServiceTxKey` | String | Energy rental transaction key |
+| `symbol` | String | Transaction fee coin |
+| `amount` | String | Amount |
+| `balance` | String | Balance after paying the fee |
+| `status` | String | SUCCESS / FAILURE_GAS_REFUNDED / FAILURE_GAS_CONSUMED |
+| `resourceType` | String | TRON only: ENERGY or BANDWIDTH |
+| `timestamp` | String | Gas deduction time (ms) |
 
 Each gas record includes status values such as:
 - `SUCCESS` — Gas refill completed
@@ -120,15 +136,15 @@ Auto Sweep prerequisites:
 
 To cancel DEPOSIT label:
 ```java
-UpdateAccountRequest req = new UpdateAccountRequest();
-req.setAccountKey("your-account-key");
+BatchUpdateAccountTagRequest req = new BatchUpdateAccountTagRequest();
+req.setAccountKeyList(Arrays.asList("your-account-key"));
 req.setAccountTag("NONE");  // removes DEPOSIT label
-ServiceExecutor.execute(accountApi.updateAccount(req));
+ServiceExecutor.execute(accountApi.batchUpdateAccountTag(req));
 ```
 
 ---
 
-## Notes
+## Best Practices
 
 - **Gas Station balance is separate from wallet balances** — top up via Safeheron Console.
 - If auto-refill keeps failing, check: gas station balance, network congestion, and policy configuration.

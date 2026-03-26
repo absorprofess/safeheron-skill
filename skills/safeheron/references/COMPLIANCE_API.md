@@ -40,7 +40,7 @@ req.setTxKey("your-tx-key");
 
 KytReportResponse resp = ServiceExecutor.execute(complianceApi.kytReport(req));
 
-for (KytReportResponse.AmlItem aml : resp.getAmlList()) {
+for (KytReportResponse.Aml aml : resp.getAmlList()) {
     System.out.println("Provider: " + aml.getProvider());
     System.out.println("Risk Level: " + aml.getRiskLevel());
     System.out.println("Status: " + aml.getStatus());
@@ -62,9 +62,9 @@ for (KytReportResponse.AmlItem aml : resp.getAmlList()) {
 |-------|------|-------------|
 | `txKey` | String | Safeheron transaction key |
 | `customerRefId` | String | Your reference ID |
-| `amlList` | List\<AmlItem\> | List of AML assessment results |
+| `amlList` | List\<Aml\> | List of AML assessment results |
 
-### AmlItem Fields
+### Aml Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -108,9 +108,8 @@ System.out.println("AML locked: " + tx.getAmlLock()); // "YES" or "NO"
 
 ---
 
-## Notes
+## Best Practices
 
-- KYT reports are available only after a transaction reaches terminal status (`SUCCESS` or `FAILED`).
 - For address-level risk checks *before* initiating a transaction, use the Tools AML Checker — see [TOOLS_API.md](TOOLS_API.md).
 - Safeheron's server timezone is UTC+0.
 - The `failOnAml` flag defaults to `true`. Setting it to `false` bypasses AML blocking entirely.

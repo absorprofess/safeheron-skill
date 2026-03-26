@@ -40,13 +40,21 @@ TxKeyResult resp = ServiceExecutor.execute(transactionApi.createTransactions(req
 String txKey = resp.getTxKey();  // save this — Safeheron transaction identifier
 ```
 
-### V3 (extended — returns txKey + extra data including gas info)
+### V3 (extended — returns txKey + idempotency info)
 
 ```java
 CreateTransactionV3Response resp = ServiceExecutor.execute(
         transactionApi.createTransactionsV3(req));  // same request class
 String txKey = resp.getTxKey();
 ```
+
+**CreateTransactionV3Response Key Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Safeheron transaction key |
+| `customerRefId` | String | Your unique business ID echoed back |
+| `idempotentRequest` | Boolean | `true` if a duplicate `customerRefId` was detected — the original `txKey` is returned instead of creating a new transaction |
 
 ### CreateTransactionRequest Key Fields
 
@@ -91,6 +99,7 @@ System.out.println("TxHash: " + resp.getTxHash());
 ```
 
 **OneTransactionsResponse Key Fields:**
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `txKey` | String | Safeheron transaction key |
@@ -124,7 +133,7 @@ System.out.println("TxHash: " + resp.getTxHash());
 
 ```java
 ListTransactionsV2Request req = new ListTransactionsV2Request();
-req.setPageSize(20L);
+req.setLimit(20L);
 req.setTransactionStatus("SUCCESS");  // optional filter
 req.setCoinKey("ETHEREUM_ETH");       // optional filter
 // req.setCreateTimeMin(startMs);     // optional timestamp filter
@@ -136,6 +145,40 @@ for (TransactionsResponse tx : txList) {
 }
 ```
 
+**ListTransactionsV2Request Fields** (extends `LimitSearch`):
+
+Inherited from `LimitSearch`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `direct` | String | Page direction: `NEXT` (default) |
+| `limit` | Long | Items per page, max 500 |
+| `fromId` | String | txKey of last record from previous page; omit for first page |
+
+Own fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sourceAccountKey` | String | Source account key |
+| `sourceAccountType` | String | Source account type |
+| `destinationAccountKey` | String | Destination account key |
+| `destinationAccountType` | String | Destination account type |
+| `accountKey` | String | Query all txns under this wallet (VAULT_ACCOUNT only; overrides source/dest filters) |
+| `createTimeMin` | Long | Start time, UNIX timestamp (ms) |
+| `createTimeMax` | Long | End time, UNIX timestamp (ms) |
+| `txAmountMin` | String | Min transaction amount |
+| `txAmountMax` | String | Max transaction amount |
+| `coinKey` | String | Coin key, multiple separated by commas |
+| `feeCoinKey` | String | Fee coin key, multiple separated by commas |
+| `transactionStatus` | String | Transaction status |
+| `transactionSubStatus` | String | Transaction sub-status |
+| `completedTimeMin` | Long | Min completion time, UNIX timestamp (ms) |
+| `completedTimeMax` | Long | Max completion time, UNIX timestamp (ms) |
+| `customerRefId` | String | Merchant unique business ID |
+| `realDestinationAccountType` | String | Type of actual destination account |
+| `hideSmallAmountUsd` | String | Filter out transactions below this USD amount |
+| `transactionDirection` | String | `INFLOW` / `OUTFLOW` / `INTERNAL_TRANSFER`; default: all |
+
 ### V1 (legacy — page-based)
 
 ```java
@@ -144,7 +187,7 @@ req.setPageSize(10L);
 req.setPageNumber(1L);
 
 PageResult<TransactionsResponse> result = ServiceExecutor.execute(
-        transactionApi.listTransactions(req));
+        transactionApi.listTransactionsV1(req));
 List<TransactionsResponse> txList = result.getContent();
 ```
 
@@ -155,7 +198,7 @@ List<TransactionsResponse> txList = result.getContent();
 ```java
 TransactionsFeeRateRequest req = new TransactionsFeeRateRequest();
 req.setCoinKey("ETHEREUM_ETH");
-req.setTxAmount("0.01");
+req.setValue("0.01");
 req.setSourceAccountKey(accountKey);
 req.setDestinationAddress("0xRecipient");
 
@@ -163,11 +206,23 @@ req.setDestinationAddress("0xRecipient");
 // req.setSourceAddress("TsenderAddress");
 
 TransactionsFeeRateResponse resp = ServiceExecutor.execute(
-        transactionApi.transactionsFeeRate(req));
+        transactionApi.transactionFeeRate(req));
 System.out.println("Low:    " + resp.getLowFeeRate());
 System.out.println("Middle: " + resp.getMiddleFeeRate());
 System.out.println("High:   " + resp.getHighFeeRate());
 ```
+
+**TransactionsFeeRateRequest Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `coinKey` | String | Coin key |
+| `txHash` | String | Original tx hash (for speed-up fee estimation) |
+| `sourceAccountKey` | String | Source account key (required for UTXO coins) |
+| `sourceAddress` | String | Source address (required for TRON; for EVM returns on-chain gas limit) |
+| `destinationAddress` | String | Destination address (optional for TRON/FIL; for EVM returns on-chain gas limit) |
+| `destinationAddressList` | `List<DestinationAddress>` | Destination address list |
+| `value` | String | Transfer amount (improves accuracy for EVM, UTXO, SUI) |
 
 > **BTC fee** = feeRate × bytesSize. **ETH fee** = feeRate × gasLimit.
 > **TRON fee**: `sourceAddress` must be provided to check on-chain staking/energy.
@@ -179,9 +234,17 @@ System.out.println("High:   " + resp.getHighFeeRate());
 ```java
 CancelTransactionRequest req = new CancelTransactionRequest();
 req.setTxKey(txKey);
+// req.setTxType("TRANSACTION");  // default, can be omitted
 
 ServiceExecutor.execute(transactionApi.cancelTransactions(req));
 ```
+
+**CancelTransactionRequest Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Transaction key |
+| `txType` | String | Transaction type, `TRANSACTION` by default |
 
 > Only transactions in `WAIT_AUDIT` or `WAIT_SIGN` status can be cancelled.
 
@@ -200,6 +263,16 @@ TxKeyResult resp = ServiceExecutor.execute(transactionApi.recreateTransactions(r
 String newTxKey = resp.getTxKey();
 ```
 
+**RecreateTransactionRequest Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Original transaction key to speed up |
+| `txHash` | String | Original transaction hash |
+| `coinKey` | String | Coin key |
+| `txFeeLevel` | String | Fee level: `LOW` / `MIDDLE` / `HIGH` |
+| `feeRateDto` | FeeRateDto | Custom fee rate (either `txFeeLevel` or `feeRateDto`) |
+
 > The original transaction and speed-up are independent. The speed-up will invalidate the original (original → FAILED). The speed-up transaction can be found via `speedUpHistory` in the original transaction, or `replacedTxKey` in the new one.
 
 ---
@@ -208,7 +281,7 @@ String newTxKey = resp.getTxKey();
 
 ```java
 ApprovalDetailTransactionsRequest req = new ApprovalDetailTransactionsRequest();
-req.setTxKey(txKey);
+req.setTxKeyList(Arrays.asList(txKey));
 
 ApprovalDetailTransactionsResponse resp = ServiceExecutor.execute(
         transactionApi.approvalDetailTransactions(req));
@@ -227,14 +300,13 @@ ApprovalDetailTransactionsResponse resp = ServiceExecutor.execute(
 | `PENDING` | On-chain, awaiting confirmations |
 | `SUCCESS` | Confirmed on-chain |
 | `FAILED` | Transaction failed |
-| `REVOKED` | Cancelled |
 | `REJECTED` | Rejected by approver |
 
 ### Status Flow
 
 ```
 SUBMITTED
-    → WAIT_AUDIT (if policy requires approval)
+    → WAIT_AUDIT
     → WAIT_SIGN
     → BROADCASTING
     → PENDING
@@ -242,7 +314,6 @@ SUBMITTED
     └─ FAILED
 
     At WAIT_AUDIT or WAIT_SIGN:
-    → REVOKED (cancelled)
     → REJECTED (denied by approver)
 ```
 
@@ -282,15 +353,6 @@ SUBMITTED
 | Non-UTXO chains | All EVM chains, FIL, Aptos, CFX |
 | NOT supported | NEAR, SUI, TRON, SOL, TON |
 
-### Transaction Timeout by Chain
-
-| Chain | Timeout Duration |
-|-------|----------------|
-| TRON | 23 hours |
-| TON | 23 hours |
-| Solana (SOL) | 90 seconds |
-| Aptos | 30 days |
-
 ### Chain-Specific Notes
 
 - **Solana**: Minimum rent-exempt balance ~0.002 SOL cannot be transferred. Max transfer = balance - 0.002 SOL.
@@ -309,7 +371,7 @@ SUBMITTED
 
 1. Always set `customerRefId` from your own DB record ID before calling create.
 2. Store the returned `txKey` — it's Safeheron's unique identifier.
-3. Monitor status via **Webhook** (preferred) rather than polling.
+3. Monitor status via **Webhook** (preferred) and call `/v1/transactions/one` periodically to re-request failed deliveries.
 4. Credit/debit accounts only on `SUCCESS` status.
 5. All amounts are **strings** (e.g. `"0.05"`) — never use float/double.
 6. On timeout, **retry with the same `customerRefId`** — Safeheron returns the original tx (idempotency). Error code `9001` means the refId already exists.

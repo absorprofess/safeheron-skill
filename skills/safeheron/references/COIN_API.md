@@ -42,20 +42,21 @@ for (CoinResponse coin : coins) {
 ```
 
 **CoinResponse Key Fields:**
+
 | Field | Type | Description |
 |-------|------|-------------|
 | `coinKey` | String | Unique coin identifier (e.g. `ETHEREUM_ETH`, `BITCOIN_BTC`) |
 | `coinFullName` | String | Full name (e.g. "Ethereum") |
 | `coinName` | String | Symbol (e.g. "ETH") |
-| `coinDecimal` | Integer | Decimal places |
+| `coinDecimal` | String | Decimal places |
 | `feeCoinKey` | String | Coin used for gas fees |
 | `feeUnit` | String | Fee unit name (Gwei, satoshis) |
-| `feeDecimal` | Integer | Fee decimal |
+| `feeDecimal` | String | Fee decimal |
 | `blockChain` | String | Blockchain name |
 | `network` | String | Mainnet / Testnet |
 | `tokenIdentifier` | String | Contract address or NATIVE |
 | `minTransferAmount` | String | Minimum transfer amount |
-| `gasLimit` | Long | Default gas limit |
+| `gasLimit` | String | Default gas limit |
 | `isUtxo` | String | YES/NO — UTXO-based chain |
 | `isMemo` | String | YES/NO — Requires memo/tag |
 | `blockchainType` | String | EVM, UTXO, etc. |
@@ -73,14 +74,30 @@ req.setCoinKey("ETHEREUM_ETH");
 req.setAddress("0xAbCd...");
 
 CheckCoinAddressResponse resp = ServiceExecutor.execute(coinApi.checkCoinAddress(req));
-boolean isValid = resp.getIsValid();  // true or false
+
+// ✅ Correct getters — use exactly these, no others exist
+if (!Boolean.TRUE.equals(resp.getAddressValid())) {
+    throw new IllegalArgumentException("Invalid address format: " + address);
+}
+if (!Boolean.TRUE.equals(resp.getAmlValid())) {
+    throw new IllegalArgumentException("Address failed AML check: " + address);
+}
 ```
 
 **CheckCoinAddressRequest Fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `coinKey` | Yes | Coin identifier |
-| `address` | Yes | Address to validate |
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `coinKey` | Yes | String | Coin identifier |
+| `address` | Yes | String | Address to validate |
+
+**CheckCoinAddressResponse Fields:**
+
+| Field | Type |  Description |
+|-------|------|-------------|
+| `addressValid` | Boolean |  Valid address format |
+| `contract` | Boolean |  Contract address |
+| `amlValid` | Boolean |  Subject to risk control limitations |
 
 ---
 
@@ -90,7 +107,7 @@ Query aggregate balance for specific coins across all accounts in the team:
 
 ```java
 CoinBalanceSnapshotRequest req = new CoinBalanceSnapshotRequest();
-req.setCoinKeys(Arrays.asList("ETHEREUM_ETH", "BITCOIN_BTC", "TRON_TRX"));
+req.setGmt8Date("2026-01-01");
 
 List<CoinBalanceSnapshotResponse> result = ServiceExecutor.execute(coinApi.coinBalanceSnapshot(req));
 for (CoinBalanceSnapshotResponse item : result) {
@@ -106,11 +123,11 @@ for (CoinBalanceSnapshotResponse item : result) {
 
 ```java
 CoinBlockHeightRequest req = new CoinBlockHeightRequest();
-req.setCoinKeys(Arrays.asList("ETHEREUM_ETH", "BITCOIN_BTC"));
+req.setCoinKey("ETHEREUM_ETH");
 
 List<CoinBlockHeightResponse> result = ServiceExecutor.execute(coinApi.coinBlockHeight(req));
 for (CoinBlockHeightResponse item : result) {
-    System.out.println(item.getCoinKey() + " block height: " + item.getBlockHeight());
+    System.out.println(item.getCoinKey() + " local block height: " + item.getLocalBlockHeight());
 }
 ```
 
@@ -135,9 +152,9 @@ CreateAccountCoinV2Request req = new CreateAccountCoinV2Request();
 req.setAccountKey("your-account-key");
 req.setCoinKeyList(Arrays.asList("USDT(ERC20)_ETHEREUM_USDT", "ETH_SEPOLIA"));
 
-List<CreateAccountCoinResponse> respList = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
-for (CreateAccountCoinResponse coin : respList) {
-    System.out.println(coin.getCoinKey() + " address: " + coin.getAddress());
+CreateAccountCoinV2Response res = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
+for (CreateAccountCoinV2Response.CoinAddress coin : res.getCoinAddressList()) {
+    System.out.println("  Added coin: " + coin.getCoinKey() + " addressList: " + coin.getAddressList());
 }
 ```
 
@@ -160,20 +177,32 @@ req.setAccountKey("your-account-key");
 List<AccountCoinResponse> coins = ServiceExecutor.execute(accountApi.listAccountCoin(req));
 for (AccountCoinResponse coin : coins) {
     System.out.println(coin.getCoinKey() + " balance: " + coin.getBalance()
-                       + " address: " + coin.getAddress());
+                       + " address: " + coin.getAddressList().get(0).getAddress());
 }
 ```
 
 > Endpoint: `POST /v1/account/coin/list`
 
 **AccountCoinResponse Key Fields:**
-| Field | Description |
-|-------|-------------|
-| `coinKey` | Coin identifier |
-| `address` | Deposit address |
-| `balance` | Available balance (string) |
-| `frozenBalance` | Balance locked in pending txs |
-| `totalBalance` | balance + frozenBalance |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `coinKey` | String | Coin identifier (e.g. `ETHEREUM_ETH`) |
+| `coinFullName` | String | Full coin name (e.g. `Ethereum`) |
+| `coinName` | String | Coin symbol (e.g. `ETH`) |
+| `symbol` | String | Coin unit display name |
+| `coinDecimal` | Long | Coin decimal places |
+| `showCoinDecimal` | Long | Displayed decimal places on Console |
+| `feeCoinKey` | String | Fee coin identifier (e.g. ETH for ERC-20 tokens) |
+| `feeUnit` | String | Fee unit name (e.g. `Gwei`, `satoshis`) |
+| `feeDecimal` | Long | Fee decimal places |
+| `balance` | String | Account balance |
+| `usdBalance` | String | Balance converted to USD |
+| `addressList` | `List<AddressResult>` | Coin deposit address list |
+| `isMultipleAddress` | String | Whether multiple address groups are supported (`Yes`/`No`) |
+| `txRefUrl` | String | Transaction explorer URL template |
+| `addressRefUrl` | String | Address explorer URL |
+| `logoUrl` | String | Coin logo URL |
 
 ---
 
@@ -214,9 +243,8 @@ Test token contracts (Ethereum Sepolia):
 
 ---
 
-## Notes
+## Best Practices
 
 - `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`, `TRON_TRX`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.
 - Always validate addresses with `checkCoinAddress` before sending funds or adding to whitelist.
 - Team-level balance: use `coinBalanceSnapshot`. Per-account balance: use `listAccountCoin`.
-- Exchange rates are sourced from **CoinGecko** and **CoinMarketCap (CMC)**.

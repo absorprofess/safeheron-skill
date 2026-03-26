@@ -130,7 +130,6 @@ After configuring all policies, simulate attacks to verify the policies hold:
 | Withdrawal amount exceeds the per-tx auto-approval threshold | Escalated to Ops Team for manual review (not auto-approved) |
 | 24H cumulative total exceeds limit within a single day | Escalated to higher approval tier |
 | Transaction with no matching policy | Blocked; `NO_MATCHING_TRANSACTION_POLICY` webhook fires |
-| Replay attack: same `customerRefId` submitted twice | Error `9001` — second call returns the existing transaction |
 
 Run these tests in your **test team** before configuring the production team. Adjust and re-test until every attack is blocked.
 

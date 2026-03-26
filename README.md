@@ -46,7 +46,7 @@ cp -r skills/safeheron .claude/skills/safeheron
 mkdir -p .cursor/skills
 cp -r skills/safeheron .cursor/skills/safeheron
 
-# Option B — Cursor native path (user-level, applies to all projects)
+# Option C — Cursor native path (user-level, applies to all projects)
 mkdir -p ~/.cursor/skills
 cp -r skills/safeheron ~/.cursor/skills/safeheron
 ```

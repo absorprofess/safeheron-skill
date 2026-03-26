@@ -96,7 +96,7 @@ openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in api_private.pem -out 
 ---
 
 ## Security Checklist
-- [ ] RSA private key stored securely (env var or secret manager, never in source code)
+- [ ] RSA private key stored securely (secret manager, never in source code)
 - [ ] Server IP registered in Safeheron Console whitelist
 - [ ] Always verify response `sig` before trusting `bizContent`
 - [ ] Use HTTPS only (`https://api.safeheron.vip`)

@@ -87,6 +87,7 @@ String txKey = resp.getTxKey();
 ```
 
 **EIP-712 Version Values:**
+
 | Value | Standard |
 |-------|----------|
 | `v1` | Legacy typed signing |
@@ -140,7 +141,7 @@ for (int i = 0; i < 60; i++) {
     if ("SUCCESS".equalsIgnoreCase(status)
             || "FAILED".equalsIgnoreCase(status)
             || "REJECTED".equalsIgnoreCase(status)
-            || "REVOKED".equalsIgnoreCase(status)) {
+            || "CANCELLED".equalsIgnoreCase(status)) {
         break;
     }
     Thread.sleep(3000);
@@ -176,19 +177,45 @@ req.setTxKey(txKey);
 ServiceExecutor.execute(web3Api.cancelWeb3Sign(req));
 ```
 
+**CancelWeb3SignRequest Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Transaction key of the sign request to cancel |
+
 ---
 
 ## List Web3 Sign Requests
 
 ```java
 ListWeb3SignRequest req = new ListWeb3SignRequest();
-req.setPageSize(20L);
+req.setLimit(20L);
 // Optional filters:
-// req.setTransactionStatus("SUCCESS");
+// req.setTransactionStatus(Arrays.asList("SUCCESS"));
 // req.setSubjectType("PERSONAL_SIGN");
 
 List<Web3SignResponse> list = ServiceExecutor.execute(web3Api.listWeb3Sign(req));
 ```
+
+**ListWeb3SignRequest Fields** (extends `LimitSearch`):
+
+Inherited from `LimitSearch`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `direct` | String | Page direction: `NEXT` (default) |
+| `limit` | Long | Items per page, max 500 |
+| `fromId` | String | txKey of last record from previous page; omit for first page |
+
+Own fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `subjectType` | String | Web3 sign type (e.g. `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION`) |
+| `transactionStatus` | `List<String>` | Filter by status list |
+| `accountKey` | String | Source account key |
+| `createTimeMin` | Long | Start time, UNIX timestamp (ms); default: `createTimeMax` minus 24h |
+| `createTimeMax` | Long | End time, UNIX timestamp (ms); default: current UTC time |
 
 ---
 
@@ -199,7 +226,7 @@ List<Web3SignResponse> list = ServiceExecutor.execute(web3Api.listWeb3Sign(req))
 | `txKey` | String | Safeheron sign request key |
 | `accountKey` | String | Web3 wallet account key |
 | `sourceAddress` | String | Signing address |
-| `transactionStatus` | String | `SUBMITTED`, `WAIT_AUDIT`, `WAIT_SIGN`, `SUCCESS`, `FAILED`, `REJECTED`, `REVOKED` |
+| `transactionStatus` | String | `SUBMITTED`, `WAIT_AUDIT`, `WAIT_SIGN`, `SUCCESS`, `FAILED`, `REJECTED` |
 | `transactionSubStatus` | String | Detailed sub-status |
 | `subjectType` | String | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
 | `customerRefId` | String | Your reference ID |
@@ -228,12 +255,12 @@ List<Web3SignResponse> list = ServiceExecutor.execute(web3Api.listWeb3Sign(req))
 
 ```
 SUBMITTED → WAIT_AUDIT → WAIT_SIGN → SUCCESS
-                                    └─ FAILED | REVOKED | REJECTED
+                                    └─ FAILED | REJECTED
 ```
 
 ---
 
-## Notes
+## Best Practices
 
 - **Web3 API requires Web3 wallet** (`accountType=WEB3_ACCOUNT`). Regular vault account keys cause "account not found" errors.
 - Web3 wallets must have a Web3 signing policy configured — contact Safeheron Support to enable.

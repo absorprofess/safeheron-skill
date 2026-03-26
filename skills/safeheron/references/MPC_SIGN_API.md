@@ -48,8 +48,8 @@ for (int i = 0; i < 100; i++) {
     String subStatus = resp.getTransactionSubStatus();
     System.out.println("status: " + status + ", sub: " + subStatus);
 
-    if ("FAILED".equalsIgnoreCase(status) || "REJECTED".equalsIgnoreCase(status)) {
-        throw new RuntimeException("MPC sign failed/rejected");
+    if ("FAILED".equalsIgnoreCase(status) || "REJECTED".equalsIgnoreCase(status) || "CANCELLED".equalsIgnoreCase(status)) {
+        throw new RuntimeException("MPC sign failed/rejected/cancelled");
     }
     if ("COMPLETED".equalsIgnoreCase(status) && "CONFIRMED".equalsIgnoreCase(subStatus)) {
         String sig = resp.getDataList().get(0).getSig();
@@ -70,6 +70,33 @@ for (int i = 0; i < 100; i++) {
 | `TxKeyResult` | Response from create — contains `txKey` |
 | `OneMPCSignTransactionsRequest` | Request to query one MPC sign tx |
 | `MPCSignTransactionsResponse` | Query response — contains status and signed data list |
+
+**MPCSignTransactionsResponse Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Transaction key |
+| `transactionStatus` | String | Transaction status |
+| `transactionSubStatus` | String | Transaction sub-status |
+| `createTime` | Long | Creation time, UNIX timestamp (ms) |
+| `sourceAccountKey` | String | Source account key |
+| `auditUserKey` | String | Final approver key |
+| `auditUserName` | String | Final approver username |
+| `createdByUserKey` | String | Creator key |
+| `createdByUserName` | String | Creator username |
+| `customerRefId` | String | Merchant unique business ID |
+| `customerExt1` | String | Merchant extended field |
+| `customerExt2` | String | Merchant extended field |
+| `signAlg` | String | Signature algorithm |
+| `dataList` | `List<Date>` | List of signed data items |
+
+**MPCSignTransactionsResponse.Date Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `note` | String | Transaction note (max 180 chars) |
+| `data` | String | Transaction data that was signed |
+| `sig` | String | Signature: 32 bytes R + 32 bytes S + 1 byte V (hex concatenated) |
 
 ---
 
@@ -151,3 +178,14 @@ String ethTxHash = web3j.ethSendRawTransaction(Numeric.toHexString(signedMessage
 |-------|-------|----------|
 | `"Secp256k1"` | secp256k1 | Ethereum, Bitcoin, BSC, Polygon |
 | `"Ed25519"` | Ed25519 | Solana, Near, Aptos |
+
+---
+
+## Best Practices
+
+- The MPCSign policy is also required before use — contact Safeheron Support to enable.
+- **Hash format** — `data` must be exactly 32 bytes (64 hex chars) with **no `0x` prefix**. For Ethereum, use `Hash.sha3(TransactionEncoder.encode(rawTx))` and strip the leading `"0x"` before submitting.
+- **Choose the correct `signAlg`** — mismatch between algorithm and chain causes signing failure.
+- `customerRefId` must be unique (max 100 chars). On timeout, **retry with the same `customerRefId`** — Safeheron returns the original request (idempotency). Error code `9001` means the refId already exists.
+- **Handle all terminal statuses** when polling — `FAILED`, `REJECTED`, `CANCELLED` should all throw/abort, not just be ignored.
+- **Approval policy applies** — every MPC Sign request goes through the configured approval workflow before signing begins; factor the approval wait time into your polling timeout.

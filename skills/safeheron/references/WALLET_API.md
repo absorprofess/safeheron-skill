@@ -27,20 +27,26 @@ req.setAccountName("my-wallet-account");
 req.setHiddenOnUI(false);  // true = API-only wallet, hidden in Console
 
 CreateAccountResponse resp = ServiceExecutor.execute(accountApi.createAccount(req));
-String accountKey = resp.getAccountKey();  // save this — permanent wallet identifier
+// ✅ Correct getters — only these three exist on CreateAccountResponse
+String accountKey = resp.getAccountKey();          // save this — permanent wallet identifier
+List<CreateAccountResponse.PubKey> pubKeys = resp.getPubKeys();
+List<CreateAccountResponse.CoinAddress> coins = resp.getCoinAddressList();
 ```
 
 **CreateAccountRequest Fields:**
+
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `accountName` | Yes | String | Wallet display name |
 | `hiddenOnUI` | No | Boolean | If true, wallet is hidden in Web Console / App |
 
 **CreateAccountResponse Fields:**
-| Field | Description |
-|-------|-------------|
-| `accountKey` | Unique wallet identifier (save permanently) |
-| `accountName` | Wallet name |
+
+| Field | Type |  Description |
+|-------|------|-------------|
+| `accountKey` | String | Unique wallet identifier (save permanently) |
+| `pubKeys` | `List<PubKey>` | Account public key list (signAlg, pubKey) |
+| `coinAddressList` | `List<CoinAddress>` | Coin address list per coin |
 
 ---
 
@@ -61,20 +67,22 @@ for (AccountResponse acct : accounts) {
 ```
 
 **ListAccountRequest Fields:**
+
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `pageSize` | No | Long | Items per page (default 10) |
 | `pageNumber` | No | Long | Page number, 1-indexed |
 
 **AccountResponse Key Fields:**
-| Field | Description |
-|-------|-------------|
-| `accountKey` | Unique wallet identifier |
-| `accountName` | Wallet display name |
-| `accountIndex` | Derivation path index |
-| `accountTag` | Tag: `DEPOSIT`, `NONE`, etc. |
-| `hiddenOnUI` | Boolean |
-| `accountType` | `VAULT_ACCOUNT` or `WEB3_ACCOUNT` |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `accountKey` | String | Unique wallet identifier |
+| `accountName` | String | Wallet display name |
+| `accountIndex` | Integer | Derivation path index |
+| `accountTag` | String | Tag: `DEPOSIT`, `NONE`, etc. |
+| `hiddenOnUI` | Boolean | Hidden from UI |
+| `accountType` | String | `VAULT_ACCOUNT` or `WEB3_ACCOUNT` |
 
 ---
 
@@ -84,24 +92,24 @@ for (AccountResponse acct : accounts) {
 OneAccountRequest req = new OneAccountRequest();
 req.setAccountKey(accountKey);
 
-AccountResponse resp = ServiceExecutor.execute(accountApi.oneAccount(req));
+AccountResponse resp = ServiceExecutor.execute(accountApi.oneAccounts(req));
 ```
+
+> ⚠️ **The method is `oneAccounts` (with 's'), NOT `oneAccount`. Do not use `oneAccount` — it does not exist.**
 
 ---
 
-## Update a Wallet Account
+## Batch Label Wallet Accounts
 
 ```java
-UpdateAccountRequest req = new UpdateAccountRequest();
-req.setAccountKey(accountKey);
-req.setAccountName("new-name");      // optional
-req.setHiddenOnUI(true);             // optional
-req.setAccountTag("DEPOSIT");        // optional: "DEPOSIT" or "NONE"
-
-ServiceExecutor.execute(accountApi.updateAccount(req));
+BatchUpdateAccountTagRequest req = new BatchUpdateAccountTagRequest();
+req.setAccountKeyList(Arrays.asList("your-account-key"));
+req.setAccountTag("NONE");  // // optional: "DEPOSIT" or "NONE"
+ServiceExecutor.execute(accountApi.batchUpdateAccountTag(req));
 ```
 
 **AccountTag Values:**
+
 | Value | Description |
 |-------|-------------|
 | `DEPOSIT` | Mark as deposit wallet — eligible for Auto Sweep |
@@ -124,13 +132,39 @@ req.setCoinKeyList(Arrays.asList(
     "BITCOIN_BTC"
 ));
 
-List<CreateAccountCoinResponse> respList = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
-for (CreateAccountCoinResponse coin : respList) {
-    System.out.println(coin.getCoinKey() + " address: " + coin.getAddress());
+CreateAccountCoinV2Response res = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
+for (CreateAccountCoinV2Response.CoinAddress coin : res.getCoinAddressList()) {
+    System.out.println("  Added coin: " + coin.getCoinKey() + " addressList: " + coin.getAddressList());
 }
 ```
 
-> **V1 (single coin):** `CreateAccountCoinRequest` with `setCoinKey(String)` — still works.
+> **V1 (single coin):** `CreateAccountCoinRequest` with `setCoinKey(String)` — still works, returns `List<CreateAccountCoinResponse>`.
+
+**CreateAccountCoinV2Response Fields:**
+
+| Field | Type |  Description |
+|-------|------|-------------|
+| `accountKey` | String | Wallet account key |
+| `coinAddressList` | `List<CoinAddress>` | Per-coin address info |
+
+**CreateAccountCoinV2Response.CoinAddress Fields:**
+
+| Field | Type |  Description |
+|-------|------|-------------|
+| `coinKey` | String | Coin identifier |
+| `addressGroupKey` | String | Address group key |
+| `addressGroupName` | String | Address group name |
+| `addressList` | `List<Address>` | Address list |
+
+**CreateAccountCoinResponse Fields (V1):**
+
+| Field | Type |  Description |
+|-------|------|-------------|
+| `address` | String | Coin receiving address |
+| `addressType` | String | Address type |
+| `derivePath` | String | BIP44 derivation path |
+
+> ⚠️ **`CreateAccountCoinResponse` (V1) does NOT have `getCoinKey()`. Use `CreateAccountCoinV2Response` if you need coin key info.**
 
 **Behavior Notes:**
 - Adding a token (e.g. USDT ERC-20) will also add ETH automatically.
@@ -150,20 +184,32 @@ req.setAccountKey(accountKey);
 List<AccountCoinResponse> coins = ServiceExecutor.execute(accountApi.listAccountCoin(req));
 for (AccountCoinResponse coin : coins) {
     System.out.printf("%-30s balance: %-20s address: %s%n",
-        coin.getCoinKey(), coin.getBalance(), coin.getAddress());
+        coin.getCoinKey(), coin.getBalance(), coin.getAddressList().get(0).getAddress());
 }
 ```
 
 > Also queryable via: `GET /v1/account/coin/list`
 
 **AccountCoinResponse Key Fields:**
-| Field | Description |
-|-------|-------------|
-| `coinKey` | Coin identifier |
-| `address` | Deposit address for this coin |
-| `balance` | Available balance (string) |
-| `frozenBalance` | Balance locked in pending transactions |
-| `totalBalance` | balance + frozenBalance |
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `coinKey` | String | Coin identifier (e.g. `ETHEREUM_ETH`) |
+| `coinFullName` | String | Full coin name (e.g. `Ethereum`) |
+| `coinName` | String | Coin symbol (e.g. `ETH`) |
+| `symbol` | String | Coin unit display name |
+| `coinDecimal` | Long | Coin decimal places |
+| `showCoinDecimal` | Long | Displayed decimal places on Console |
+| `feeCoinKey` | String | Fee coin identifier (e.g. ETH for ERC-20 tokens) |
+| `feeUnit` | String | Fee unit name (e.g. `Gwei`, `satoshis`) |
+| `feeDecimal` | Long | Fee decimal places |
+| `balance` | String | Account balance |
+| `usdBalance` | String | Balance converted to USD |
+| `addressList` | `List<AddressResult>` | Coin deposit address list |
+| `isMultipleAddress` | String | Whether multiple address groups are supported (`Yes`/`No`) |
+| `txRefUrl` | String | Transaction explorer URL template |
+| `addressRefUrl` | String | Address explorer URL |
+| `logoUrl` | String | Coin logo URL |
 
 ---
 
@@ -175,13 +221,13 @@ for (AccountCoinResponse coin : coins) {
 | List accounts | `ListAccountRequest` | `PageResult<AccountResponse>` |
 | Get one account | `OneAccountRequest` | `AccountResponse` |
 | Update account | `UpdateAccountRequest` | *(void / ResultResponse)* |
-| Add coin V2 | `CreateAccountCoinV2Request` | `List<CreateAccountCoinResponse>` |
+| Add coin V2 | `CreateAccountCoinV2Request` | `CreateAccountCoinV2Response` |
 | Add coin V1 | `CreateAccountCoinRequest` | `List<CreateAccountCoinResponse>` |
 | List coins | `ListAccountCoinRequest` | `List<AccountCoinResponse>` |
 
 ---
 
-## Notes
+## Best Practices
 
 - `pageSize` and `pageNumber` fields are **Long** type, not int.
 - `accountKey` is the permanent, immutable identifier for a wallet — store it after creation.

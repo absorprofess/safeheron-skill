@@ -184,7 +184,7 @@ A (EN): Use the V2 API (recommended) — supports adding up to **20 coins at onc
 CreateAccountCoinV2Request req = new CreateAccountCoinV2Request();
 req.setAccountKey(accountKey);
 req.setCoinKeyList(Arrays.asList("USDT(ERC20)_ETHEREUM_USDT", "ETHEREUM_ETH"));
-List<CreateAccountCoinResponse> respList = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
+CreateAccountCoinV2Response res = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
 ```
 
 A (中文): 推荐使用 V2 接口，`coinKeyList` 最多一次添加 20 个 coinKey。token coinKey 会自动添加对应主网币种；主网 coinKey 只添加该主网。已添加过的 coinKey 响应数据与上次一致（幂等）。手动关闭过的 coinKey，API 不会重新打开。
@@ -194,6 +194,7 @@ A (中文): 推荐使用 V2 接口，`coinKeyList` 最多一次添加 20 个 coi
 **Q: How to distinguish deposit (inflow) vs. withdrawal (outflow) vs. internal transfer by transaction type?**
 
 A (EN): Check `destinationAccountType` and `sourceAccountType`:
+
 | Scenario | destinationAccountType | sourceAccountType |
 |----------|----------------------|------------------|
 | Withdrawal (outflow) | `ONE_TIME_ADDRESS` | `VAULT_ACCOUNT` |
@@ -286,7 +287,6 @@ ListAccountCoinRequest req = new ListAccountCoinRequest();
 req.setAccountKey(accountKey);
 List<AccountCoinResponse> coins = ServiceExecutor.execute(accountApi.listAccountCoin(req));
 // coin.getBalance() — available balance
-// coin.getTotalBalance() — total including frozen
 ```
 
 A (中文): 调用 `/v1/account/coin/list` 接口，查看响应中的 `balance` 字段。
@@ -298,7 +298,7 @@ A (中文): 调用 `/v1/account/coin/list` 接口，查看响应中的 `balance`
 A (EN): Call `/v1/coin/balance/snapshot` and read `coinBalance`:
 ```java
 CoinBalanceSnapshotRequest req = new CoinBalanceSnapshotRequest();
-req.setCoinKeys(Arrays.asList("USDT(ERC20)_ETHEREUM_USDT"));
+req.setGmt8Date("2026-01-01");
 List<CoinBalanceSnapshotResponse> result = ServiceExecutor.execute(coinApi.coinBalanceSnapshot(req));
 // result.get(0).getCoinBalance() — total balance across all accounts
 ```
@@ -404,11 +404,11 @@ A (中文): 原交易和加速交易为两笔独立交易，加速交易会顶�
 
 A (EN): Yes. Pass `accountTag = "NONE"` to remove the DEPOSIT label. It can be re-applied later by passing `accountTag = "DEPOSIT"` again.
 ```java
-UpdateAccountRequest req = new UpdateAccountRequest();
-req.setAccountKey(accountKey);
+atchUpdateAccountTagRequest req = new BatchUpdateAccountTagRequest();
+req.setAccountKeyList(Arrays.asList("your-account-key"));
 req.setAccountTag("NONE");   // remove
 // req.setAccountTag("DEPOSIT"); // re-apply
-ServiceExecutor.execute(accountApi.updateAccount(req));
+ServiceExecutor.execute(accountApi.batchUpdateAccountTag(req));
 ```
 
 A (中文): 通过传 `NONE` 可取消 DEPOSIT 标签，取消后可再次传 `DEPOSIT` 重新标记。
@@ -431,9 +431,9 @@ A (中文): `VAULT_ACCOUNT` 时传 accountKey；`WHITELISTING_ACCOUNT` 时传 wh
 A (EN): Retry schedule after first failure:
 `30s → 1min → 5min → 1h → 12h → 24h` — total **7 attempts**. After the 7th failure, no further retries.
 
-Call `POST /v1/webhook/pushFailed` to manually retry all failed events.
+Call `POST /v1/webhook/resend/failed` to manually retry all failed events.
 
-A (中文): 失败后重试：30s、1m、5m、1h、12h、24h，共 7 次，最后一次失败则不再重试。可调用 `/v1/webhook/pushFailed` 手动重推所有失败事件。
+A (中文): 失败后重试：30s、1m、5m、1h、12h、24h，共 7 次，最后一次失败则不再重试。可调用 `/v1/webhook/resend/failed` 手动重推所有失败事件。
 
 ---
 
@@ -450,6 +450,7 @@ A (中文): Solana 账户有约 0.002 SOL 的免租金额不能转走，最大�
 **Q: Which test networks does Safeheron support in production? Where to get test tokens?**
 
 A (EN):
+
 | Network | Token | Details |
 |---------|-------|---------|
 | Ethereum Sepolia | GSK | Contract: `0xF191b0720cb49DdAb6ECd72a65955a35b31fc944` |
@@ -469,20 +470,6 @@ A (EN):
 - **Chains WITHOUT speed-up**: NEAR, SUI, TRON, SOL, TON
 
 A (中文): 支持加速的 UTXO：BTC、BCH、DASH、LTC、DOGE；支持加速的非 UTXO：EVM、FIL、Aptos、CFX；不支持加速：NEAR、SUI、TRON、SOL、TON。
-
----
-
-**Q: Which chains have transaction timeout mechanisms? What are the timeout durations?**
-
-A (EN):
-| Chain | Timeout |
-|-------|---------|
-| TRON | 23 hours |
-| TON | 23 hours |
-| Solana (SOL) | 90 seconds |
-| Aptos | 30 days |
-
-A (中文): TRON、TON 超时 23 小时；SOL 超时 90 秒；Aptos 超时 30 天。
 
 ---
 
@@ -662,13 +649,6 @@ A (中文): 检查：① 待归集钱包是否打了 DEPOSIT 标签；② 策略
 
 ---
 
-**Q: How are cryptocurrency exchange rates sourced?**
-
-A (EN): From **CoinGecko** and **CoinMarketCap (CMC)**.
-
-A (中文): 汇率来源：CoinGecko 和 CMC（CoinMarketCap）。
-
----
 
 **Q: Can wallets be deleted?**
 
@@ -691,6 +671,119 @@ A (中文): 最多显示 1000 个钱包，按 USD 价值从高到低排序，无
 A (EN): Manual webhook trigger rate limit: **10 times per minute**.
 
 A (中文): 手动触发 Webhook 频率限制：10 次/分钟。
+
+---
+
+## Security
+
+**Q: How should user permissions be assigned? (Principle of least privilege)**
+
+A (EN): Permission assignment must follow these principles:
+1. **Least privilege** — only enable the permissions actually required for the current business role. Do not grant all permissions by default.
+2. **Separation of duties** — the person who initiates a transaction and the person who approves it must be different accounts. Never allow self-initiate + self-approve.
+3. **Periodic review** — regularly audit permission assignments. Revoke permissions for users who have left the team or changed roles to avoid stale permission risk.
+
+A (中文): 权限分配遵循三原则：① 最小权限原则，只开启当前业务实际需要的权限，不开启全部权限；② 职责分离，发起权限和审核权限分开，避免自发自审；③ 定期做权限审查，避免人员离职或岗位变更遗留权限风险。
+
+---
+
+**Q: What are the security requirements for Webhook integration?**
+
+A (EN):
+1. **HTTPS is mandatory** — never expose an HTTP Webhook endpoint in production. All Webhook URLs must use HTTPS.
+2. **IP whitelist via VPC security group or firewall** — only allow inbound traffic from Safeheron's egress IPs: `18.162.105.64`, `18.167.22.59`, `18.167.21.182`. Block all other sources.
+3. **Verify signature before processing** — validate the `sig` field in every Webhook payload using Safeheron's RSA public key before taking any action. Reject events with invalid signatures.
+4. **Idempotent handler** — Safeheron retries up to 7 times; ensure duplicate events do not cause double-crediting or double-processing.
+5. **Terminal state wins** — never downgrade a transaction status (e.g., `COMPLETED` → `CONFIRMING`). Out-of-order delivery is possible; if a terminal-state event was already applied, discard any later intermediate-state event for the same transaction.
+
+A (中文): ① 必须使用 HTTPS，生产环境禁止暴露 HTTP 的 Webhook 接收接口；② 使用 VPC 安全组或防火墙只放行 Safeheron 出口 IP（18.162.105.64、18.167.22.59、18.167.21.182）；③ 每次接收 Webhook 必须先验签再处理，验签失败直接拒绝；④ 接口必须幂等，防止重复入账；⑤ 终态优先，不回滚交易状态，乱序场景以终态为准。
+
+---
+
+**Q: What are the security requirements for Co-Signer deployment?**
+
+A (EN):
+1. **Private network only** — the Co-Signer host must be deployed in an internal isolated network. It must not be directly exposed to the public internet.
+2. **Approval Callback Service** — the callback service should only accept inbound traffic from the Co-Signer host IP, not from the public internet.
+3. **Production API Key must configure Callback** — for any API Key used with Co-Signer in production, the Callback URL is **required**. Never skip Callback configuration in production.
+4. **Never blindly approve** — the callback service must validate every transaction: `customerRefId` must match a real pending business order; amount must match; destination address must match. Reject any discrepancy.
+
+A (中文): ① Co-Signer 必须部署在内网，不直接暴露公网；② Callback Service 仅接受来自 Co-Signer 宿主机 IP 的请求；③ 生产环境 Co-signer API Key 必须配置 Callback，严禁跳过；④ 禁止盲目通过，必须校验 customerRefId、金额、目标地址与业务系统一致。
+
+---
+
+**Q: What should I be careful about with API Key security?**
+
+A (EN):
+1. **Minimum permissions** — configure each API Key with only the permissions strictly required for its use case. Do not enable all permissions.
+2. **No plaintext private keys in code or config** — RSA private keys must never be written into source code or configuration files. Non-essential personnel must not have access to these keys.
+3. **Minimal IP whitelist** — only add the server IPs that genuinely need API access. Remove stale or decommissioned IPs promptly.
+4. **Production Co-Signer API Key must have Callback configured** — this is mandatory in production, not optional.
+5. **Rotate keys on suspected compromise** — if a key may have been exposed, rotate it immediately.
+
+A (中文): ① 权限配置最小化，只开启业务实际需要的权限；② RSA 相关私钥不得明文写入代码或配置文件，非核心人员不要接触；③ IP 白名单仅保留业务实际需要的最少服务器 IP，及时清理废弃 IP；④ 生产环境 Co-signer API Key 必须配置 Callback，严禁跳过；⑤ 疑似泄露时立即轮换。
+
+---
+
+**Q: What are the security best practices for configuring transaction policies?**
+
+A (EN):
+1. **Tiered approval based on amount** — configure different approval flows for different amount ranges. Example: small amounts → Co-Signer auto-approve; large amounts → multi-person team approval.
+2. **Catch-all blocking rule at the bottom** — always add a "block all" rule as the last entry in the policy stack to intercept any transactions that match no defined rule. This prevents unmatched transactions from slipping through.
+3. **Test with small amounts after configuration** — after setting up policies, verify the approval flow works as expected by running a small-amount test transaction.
+4. **Periodic security audit** — regularly review and audit policy rules to ensure they remain appropriate as business changes.
+5. **Subscribe to `NO_MATCHING_TRANSACTION_POLICY` webhook** — use this event as an operational alert for transactions that hit no policy.
+
+A (中文): ① 建议基于金额配置分级审批流程（如小额自动 Co-Signer 审批、大额团队多签）；② 在最底层配置一条"拦截所有"的兜底策略，拦截所有未匹配规则的异常交易；③ 策略配置完成后，通过小额测试验证审批流程是否符合预期；④ 定期对策略规则进行安全审计；⑤ 订阅 `NO_MATCHING_TRANSACTION_POLICY` Webhook 事件作为运营告警。
+
+---
+
+**Q: What should I be careful about when using the Safeheron App?**
+
+A (EN):
+1. **Use a dedicated device** — avoid installing the Safeheron App on a personal everyday phone. A compromised, infected, or accidentally misused personal device could result in asset loss.
+2. **Enable 2FA** — two-factor authentication must be enabled for every account that accesses the Safeheron App.
+3. **No VPN on the App device** — VPN apps carry traffic interception risk. Do not install or enable a VPN on the device running the Safeheron App.
+4. **Offline backup of private key and mnemonic** — back up offline (handwritten on paper). Never screenshot, never upload to cloud storage, never transmit via any instant messaging tool.
+5. **Keep App updated** — regularly check for and install the latest version of the Safeheron App to ensure security patches are applied.
+6. **Avoid public Wi-Fi** — do not perform asset operations on public Wi-Fi (airports, cafés, etc.) due to man-in-the-middle attack risk.
+
+A (中文): ① 避免在个人日常使用的手机上安装 Safeheron App，降低设备被攻击或误操作风险；② 必须开启双因素认证（2FA）；③ 禁止在 App 所在手机上安装或启用 VPN；④ 私钥与助记词必须离线安全备份（写纸留档），不得截屏、上传云盘或通过即时通讯工具传输；⑤ 保持 App 为最新版本；⑥ 不在公共 Wi-Fi 下进行资产操作，防范中间人攻击。
+
+---
+
+**Q: How should server permissions be assigned?**
+
+A (EN): Server permissions must be strictly controlled:
+1. Apply the **principle of least privilege** — only grant users the minimum permissions required to perform their role. Never grant broad administrative access by default.
+2. **Regularly audit and revoke** — periodically review all permission assignments. Immediately revoke access for users who no longer need it (e.g., role change, departure).
+
+A (中文): 服务器权限应严格分配：① 采用最小权限原则，只授予用户完成工作所需的最低权限；② 定期审查并更新权限分配，及时撤销不再需要访问权限的用户，降低安全风险。
+
+---
+
+**Q: What password strength is required?**
+
+A (EN): All accounts and credentials involved in the deployment — including database passwords, cloud service account passwords, and API Key-related credentials — must use **strong randomly generated passwords**. Strong passwords must:
+- Contain letters, digits, and special characters
+- Avoid birthdates, names, or dictionary words
+- Be rotated periodically
+
+Additionally, **enable 2FA/MFA** on all services that support it to add a second layer of defense.
+
+A (中文): 部署 API Co-Signer 期间涉及的所有账户和密码（包括数据库密码、云服务账户密码等）必须采用随机生成的强密码策略（包含字母、数字、特殊字符，避免生日/姓名/字典词，定期轮换）。强烈推荐为所有支持双因素或多因素认证（2FA/MFA）的服务启用该功能。
+
+---
+
+**Q: How should sensitive information be stored?**
+
+A (EN): All sensitive information — passwords, private keys, API keys, mnemonics — must be stored using a secure management tool such as a password manager (e.g., **1Password**). Rules:
+1. **Never share in plaintext** — do not transmit or share sensitive information via social media, messaging apps, email, or any unencrypted channel.
+2. **Never store in plain files** — do not place sensitive values in easily accessible files, `.env` files committed to git, or unencrypted note-taking apps.
+3. **Use a secrets manager in production** — use AWS Secrets Manager, GCP Secret Manager, or HashiCorp Vault for server-side credential management.
+4. **Offline backup for mnemonics and key shards** — handwritten on paper, stored in a physically secure location (e.g., safe). Never photographed, never in cloud storage.
+
+A (中文): 所有敏感信息（密码、私钥、API Key、助记词）应使用安全管理工具存储，如密码管理器（1Password）。① 严禁以任何形式在社交媒体或即时通讯工具上传输或分享明文敏感信息；② 严禁存放在普通易于访问的文件中；③ 生产环境服务端使用 Secrets Manager 管理凭证；④ 助记词和私钥分片必须离线备份（写纸），存放于物理安全场所，禁止拍照或上传云盘。
 
 ---
 

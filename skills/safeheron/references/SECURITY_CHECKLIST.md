@@ -61,11 +61,10 @@ All team members with access to the Safeheron App should have the following conf
 
 | # | Check Item |
 |---|-----------|
-| 1 | A periodic job polls the **transaction list API** to catch any transactions whose webhook delivery failed |
-| 2 | The polling job deduplicates against already-processed transactions (idempotent by `txKey`) |
-| 3 | Webhook handler returns HTTP 200 immediately and processes events asynchronously |
-| 4 | Webhook handler avoids **status rollback** — if the current DB status is `COMPLETED`, it must not downgrade to `CONFIRMING` even if that event arrives late |
-| 5 | `/v1/webhook/pushFailed` is called periodically to re-request delivery of failed events |
+| 1 | The polling job deduplicates against already-processed transactions (idempotent by `txKey`) |
+| 2 | Webhook handler returns HTTP 200 immediately and processes events asynchronously |
+| 3 | Webhook handler avoids **status rollback** — if the current DB status is `COMPLETED`, it must not downgrade to `CONFIRMING` even if that event arrives late |
+| 4 | `/v1/transactions/one` is called periodically to re-request delivery of failed events |
 
 ### 4-3. Safeheron IP Whitelist for Webhook Server
 
@@ -112,7 +111,7 @@ These drills ensure the team knows exactly what to do when an unexpected device 
 These items are the most consequential — do not go live without them:
 
 - Local private key shard backed up offline by the team owner
-- At least 2 distinct approvers required for large outflows (never 1-of-1 on high-value policies)
+- At least 2 distinct **human** approvers required for large outflows — API Co-Signer counts as one automated approver (1-of-1 is acceptable for automated low-value tiers only); never use 1-of-1 human-only approval on high-value policies
 - `NO_MATCHING_TRANSACTION_POLICY` webhook subscribed and alerted
 - Webhook signature verification implemented
 - `customerRefId` generated and stored before every API transaction call

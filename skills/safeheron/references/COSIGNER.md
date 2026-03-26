@@ -65,9 +65,9 @@ After decryption, `bizContent` is a JSON object:
 
 | `type` | Description |
 |--------|-------------|
-| `TRANSACTION_APPROVAL` | Regular transaction approval |
-| `WEB3_SIGN_APPROVAL` | Web3 signing approval |
-| `MPC_SIGN_APPROVAL` | MPC raw signing approval |
+| `TRANSACTION` | Regular transaction approval |
+| `MPC_SIGN` | MPC raw signing approval |
+| `WEB3_SIGN` | Web3 signing approval |
 
 ---
 
@@ -197,19 +197,19 @@ private boolean shouldApprove(TransactionApproval req) {
 
 ## API Co-Signer Deployment Notes
 
-| Topic | Detail |
-|-------|--------|
-| Polling interval | v2.x: every 5s; v1.x: every 1s |
-| Callback timeout | Response must arrive within 5s of Co-Signer server time |
-| Production | Callback URL is **required** for production teams |
-| Test environment | Callback URL is optional |
-| KMS support | AWS KMS, GCP KMS (Alibaba Cloud KMS not supported) |
-| CLI commands | `sudo ./cosigner start`, `sudo ./cosigner stop`, `sudo ./cosigner logs -f` |
-| Export Co-Signer public key | `sudo ./cosigner export-public-key` |
-| Minimum server specs | Refer to Safeheron Console deployment guide |
-| Config changes | Modify `.env` then run `stop` + `start` to reload |
+| Topic | Detail                                                                  |
+|-------|-------------------------------------------------------------------------|
+| Polling interval | v2.x: every 5s; v1.x: every 1s                                          |
+| Callback timeout | Response must arrive within 5s of Co-Signer server time                 |
+| Production | Callback URL is **required** for production teams                       |
+| Test environment | Callback URL is optional                                                |
+| KMS support | AWS KMS, GCP KMS, Alibaba Cloud KMS                                    |
+| CLI commands | `sudo ./cosigner start`, `sudo ./cosigner stop`, `sudo ./cosigner logs` |
+| Export Co-Signer public key | `sudo ./cosigner export-public-key`                                     |
+| Minimum server specs | Refer to Safeheron Console deployment guide                             |
+| Config changes | Modify `.env` then run `stop` + `start` to reload                       |
 | Update Callback URL | Web Console update takes effect within 5 min — no Co-Signer restart needed |
-| IP whitelist | Add Co-Signer host IP to the API Key IP whitelist in Console |
+| IP whitelist | Add Co-Signer host IP to the API Key IP whitelist in Console            |
 
 ---
 

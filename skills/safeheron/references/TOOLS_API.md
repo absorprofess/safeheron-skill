@@ -66,9 +66,8 @@ AmlCheckerRetrievesRequest req = new AmlCheckerRetrievesRequest();
 req.setRequestId(requestId);
 
 AmlCheckerRetrievesResponse resp = ServiceExecutor.execute(toolsApi.amlCheckerRetrieves(req));
-System.out.println("Risk Level: " + resp.getRiskLevel());
-System.out.println("Provider:   " + resp.getProvider());
-System.out.println("Status:     " + resp.getStatus());
+System.out.println("Risk Level: " + resp.getMistTrack().getRiskLevel());
+System.out.println("Status:     " + resp.getMistTrack().getStatus());
 ```
 
 ### AmlCheckerRetrievesResponse Fields
@@ -78,12 +77,9 @@ System.out.println("Status:     " + resp.getStatus());
 | `requestId` | String | The assessment request ID |
 | `network` | String | Blockchain network |
 | `address` | String | Assessed address |
-| `provider` | String | AML provider name |
-| `status` | String | Assessment status (PENDING / COMPLETED / FAILED) |
-| `riskLevel` | String | `HIGH`, `MEDIUM`, `LOW`, `UNKNOWN` |
-| `payload` | Object | Raw provider-specific risk data |
-| `createTime` | Long | Unix timestamp (ms) when submitted |
-| `updateTime` | Long | Unix timestamp (ms) of last update |
+| `mistTrack` | object | MistTrack risk assessment result |
+| `└─status` | String | MistTrack risk assessment status (EVALUATING / SUCCESS) |
+| `└─riskLevel` | String | `Low`, `Moderate`, `High`, `Severe` |
 
 ---
 
@@ -103,15 +99,14 @@ pollReq.setRequestId(requestId);
 AmlCheckerRetrievesResponse result = null;
 for (int i = 0; i < 30; i++) {
     result = ServiceExecutor.execute(toolsApi.amlCheckerRetrieves(pollReq));
-    if ("COMPLETED".equalsIgnoreCase(result.getStatus())
-            || "FAILED".equalsIgnoreCase(result.getStatus())) {
+    if ("SUCCESS".equalsIgnoreCase(result.getMistTrack().getStatus())) {
         break;
     }
     Thread.sleep(2000);
 }
 
 // 3. Block high-risk addresses
-if (result != null && "HIGH".equalsIgnoreCase(result.getRiskLevel())) {
+if (result != null && "HIGH".equalsIgnoreCase(result.getMistTrack().getRiskLevel())) {
     throw new RuntimeException("AML check failed: destination address is high-risk");
 }
 
@@ -133,9 +128,9 @@ txReq.setDestinationAddress(destinationAddress);
 
 ---
 
-## Notes
+## Best Practices
 
-- AML checker uses external providers — results may take several seconds to minutes.
+- AML checker uses external providers — results may take several seconds hours.
 - For transaction-level KYT reports (after a transaction completes), use `ComplianceApiService.kytReport()` — see [COMPLIANCE_API.md](COMPLIANCE_API.md).
 - The `failOnAml=true` flag in `CreateTransactionRequest` (default) enables automatic server-side AML blocking — the Tools API is for manual pre-screening before sending.
 - API endpoint: `POST /v1/tools/aml-checker/request` and `POST /v1/tools/aml-checker/retrieves`.

@@ -103,6 +103,7 @@ Add to `pom.xml`:
 <dependency>
     <groupId>com.safeheron</groupId>
     <artifactId>api-sdk-java</artifactId>
+    <!-- Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases -->
     <version>1.0.9</version>
 </dependency>
 ```
@@ -123,6 +124,7 @@ Add to `build.gradle`:
 
 ```groovy
 dependencies {
+    // Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases
     implementation 'com.safeheron:api-sdk-java:1.0.9'
 }
 ```
@@ -131,6 +133,7 @@ Or for `build.gradle.kts`:
 
 ```kotlin
 dependencies {
+    // Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases
     implementation("com.safeheron:api-sdk-java:1.0.9")
 }
 ```
@@ -304,7 +307,7 @@ import com.safeheron.client.request.ListAccountRequest;
 import com.safeheron.client.response.AccountResponse;
 import com.safeheron.client.response.CreateAccountCoinResponse;
 import com.safeheron.client.response.CreateAccountResponse;
-import com.safeheron.client.utils.PageResult;
+import com.safeheron.client.response.PageResult;
 import com.safeheron.client.utils.ServiceCreator;
 import com.safeheron.client.utils.ServiceExecutor;
 

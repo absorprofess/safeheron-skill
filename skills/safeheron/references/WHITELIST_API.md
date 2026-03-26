@@ -81,8 +81,7 @@ System.out.println("Status: " + resp.getWhitelistStatus());
 
 ```java
 ListWhitelistRequest req = new ListWhitelistRequest();
-req.setPageSize(20L);
-req.setPageNumber(1L);
+req.setLimit(20L);
 
 List<WhitelistResponse> list = ServiceExecutor.execute(whitelistApi.listWhitelist(req));
 for (WhitelistResponse entry : list) {
@@ -143,7 +142,6 @@ String whitelistKey = resp.getWhitelistKey();
 | `address` | String | Whitelisted address |
 | `memo` | String | Memo (TON networks) |
 | `whitelistStatus` | String | `AUDIT` / `APPROVED` / `REJECTED` |
-| `hiddenOnUI` | Boolean | Hidden from UI |
 | `createTime` | Long | Unix timestamp (ms) |
 | `lastUpdateTime` | Long | Unix timestamp (ms) |
 
