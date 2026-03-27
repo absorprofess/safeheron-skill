@@ -146,12 +146,7 @@ A: Use the V2 API (recommended) — supports adding up to **20 coins at once** v
 - Re-adding an already-added coinKey returns the same response (idempotent).
 - If a coinKey was manually disabled in the UI after being added, the API **cannot** re-enable it.
 
-```java
-CreateAccountCoinV2Request req = new CreateAccountCoinV2Request();
-req.setAccountKey(accountKey);
-req.setCoinKeyList(Arrays.asList("USDT(ERC20)_ETHEREUM_USDT", "ETHEREUM_ETH"));
-CreateAccountCoinV2Response res = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
-```
+See **Add Coin(s) to a Wallet Account** in `references/{lang}/COIN_API.md` for language-specific examples.
 
 ---
 
@@ -227,24 +222,14 @@ A: Yes. Sweep transactions, gas refill transactions, speed-up transactions, batc
 **Q: How to query the balance of USDT/ETH on a specific MPC wallet address?**
 
 A: Call `/v1/account/coin/list` and read the `balance` field in the response:
-```java
-ListAccountCoinRequest req = new ListAccountCoinRequest();
-req.setAccountKey(accountKey);
-List<AccountCoinResponse> coins = ServiceExecutor.execute(accountApi.listAccountCoin(req));
-// coin.getBalance() — available balance
-```
+See **List Coins for a Wallet Account** in `references/{lang}/COIN_API.md` for language-specific examples.
 
 ---
 
 **Q: How to query the aggregate balance of a specific coinKey across all wallets in the team?**
 
 A: Call `/v1/coin/balance/snapshot` and read `coinBalance`:
-```java
-CoinBalanceSnapshotRequest req = new CoinBalanceSnapshotRequest();
-req.setGmt8Date("2026-01-01");
-List<CoinBalanceSnapshotResponse> result = ServiceExecutor.execute(coinApi.coinBalanceSnapshot(req));
-// result.get(0).getCoinBalance() — total balance across all accounts
-```
+See **Coin Balance Snapshot (Team-wide)** in `references/{lang}/COIN_API.md` for language-specific examples.
 
 ---
 
@@ -324,13 +309,7 @@ A: The original and speed-up are **independent transactions**. The speed-up will
 **Q: Can the DEPOSIT label on a wallet be removed? Can it be re-applied?**
 
 A: Yes. Pass `accountTag = "NONE"` to remove the DEPOSIT label. It can be re-applied later by passing `accountTag = "DEPOSIT"` again.
-```java
-atchUpdateAccountTagRequest req = new BatchUpdateAccountTagRequest();
-req.setAccountKeyList(Arrays.asList("your-account-key"));
-req.setAccountTag("NONE");   // remove
-// req.setAccountTag("DEPOSIT"); // re-apply
-ServiceExecutor.execute(accountApi.batchUpdateAccountTag(req));
-```
+See **Batch Label Wallet Accounts** in `references/{lang}/WALLET_API.md` for language-specific examples.
 
 ---
 
@@ -436,10 +415,7 @@ A: The USDC coin type was not added to the wallet. The balance will update once 
 
 A: Set `failOnContract = false` in the transaction request. The default is `true` (blocked). Note: transferring to contract addresses carries risk — only disable this flag when you explicitly know the destination is a valid contract.
 
-```java
-CreateTransactionRequest req = new CreateTransactionRequest();
-req.setFailOnContract(false);  // required to send to contract addresses
-```
+Set `failOnContract = false` in the transaction request — see **Create a Transaction** in `references/{lang}/TRANSACTION_API.md` for language-specific examples.
 
 ---
 
