@@ -74,3 +74,7 @@ Once installed, try these in Claude Code or Cursor:
 - [Safeheron API Docs](https://docs.safeheron.com/api/en.html)
 - [Java SDK GitHub](https://github.com/Safeheron/safeheron-api-sdk-java)
 - [Safeheron Console](https://www.safeheron.com)
+
+## License
+
+MIT

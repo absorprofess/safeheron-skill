@@ -114,7 +114,7 @@ If using SnakeYAML for config file loading (optional):
 <dependency>
     <groupId>org.yaml</groupId>
     <artifactId>snakeyaml</artifactId>
-    <version>1.33</version>
+    <version>2.2</version>
 </dependency>
 ```
 
@@ -411,6 +411,5 @@ Total wallets: 1
 | Auto-approve transactions | [COSIGNER.md](COSIGNER.md) |
 | MPC raw signing | [MPC_SIGN_API.md](MPC_SIGN_API.md) |
 | Web3 wallet signing | [WEB3_API.md](WEB3_API.md) |
-| Authentication details | [AUTH.md](AUTH.md) |
+| Authentication details | [AUTH.md](../AUTH.md) |
 | Error codes & troubleshooting | [ERROR_CODES.md](ERROR_CODES.md) |
-| Common Q&A | [FAQ.md](FAQ.md) |

@@ -1,18 +1,22 @@
 ---
 name: safeheron
 description: >
-  Use when working with Safeheron API to set up from scratch, manage wallet accounts, create transactions, handle MPC signing, interact with Web3 wallet operations, manage whitelists, process webhooks, integrate with the Java SDK (com.safeheron:api-sdk-java), use Gas Station, perform AML/compliance checks, use Tools API, or handle API Co-Signer callbacks.
+  Use when working with Safeheron API to set up from scratch, manage wallet accounts,
+  create transactions, handle MPC signing, interact with Web3 wallet operations,
+  manage whitelists, process webhooks, use Gas Station, perform AML/compliance checks,
+  use Tools API, or handle API Co-Signer callbacks — in Java, JavaScript/TypeScript,
+  Go, or Python.
 ---
 
 # Safeheron API Skill
 
-A complete reference and integration guide for the Safeheron MPC Custody API and Java SDK.
+A complete reference and integration guide for the Safeheron MPC Custody API and SDKs.
 
 **When NOT to use:** For generic blockchain/Web3 questions unrelated to Safeheron's API or SDK; for other MPC custody providers.
 
 ## 🚀 New Here? Start with the Getting Started Guide
 
-**→ [GETTING_STARTED.md](references/GETTING_STARTED.md)**
+**→ `references/{lang}/GETTING_STARTED.md`** (replace `{lang}` with `java`, `js`, `go`, or `python`)
 
 Covers all 5 onboarding steps:
 1. Generate RSA key pair
@@ -59,125 +63,106 @@ Covers all 5 onboarding steps:
 - [ ] **Subscribe to operational alerts** — Always subscribe to `ILLEGAL_IP_REQUEST`, `NO_MATCHING_TRANSACTION_POLICY`,`GAS_BALANCE_WARNING`, and `AML_KYT_ALERT` webhook events.
 - [ ] **Minimum deposit filter** — Filter dust/address-pollution deposits by enforcing a minimum deposit amount in your system.
 
-→ **[SECURITY_BEST_PRACTICES.md](references/SECURITY_BEST_PRACTICES.md)** — Detailed implementation guide with code examples (read this)
-→ **[SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** — Complete pre-launch checklist
-→ **[POLICY_STRATEGY.md](references/POLICY_STRATEGY.md)** — Policy configuration guide with approval tiers
-→ **[BUSINESS_PATTERNS.md](references/BUSINESS_PATTERNS.md)** — Deposit/withdrawal/sweep patterns with security baked in
+→ **`references/{lang}/SECURITY_BEST_PRACTICES.md`** — Detailed implementation guide with code examples (read this)
+→ **[references/SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** — Complete pre-launch checklist
+→ **`references/{lang}/POLICY_STRATEGY.md`** — Policy configuration guide with approval tiers
+→ **`references/{lang}/BUSINESS_PATTERNS.md`** — Deposit/withdrawal/sweep patterns with security baked in
 
 ---
 
-## ⚠️ Critical SDK Pattern (Read First)
+## ⚠️ SDK Initialization Pattern (Per Language)
 
-The Java SDK does **NOT** use service classes like `SafeheronClient`, `AccountService`, or `TransactionService`.
-The correct pattern is:
+| Language | Config | Get API instance | Invoke |
+|----------|--------|-----------------|--------|
+| Java | `SafeheronConfig` builder | `ServiceCreator.create(XxxApiService.class, config)` | `ServiceExecutor.execute(...)` sync |
+| JS/TS | config object `{ baseUrl, apiKey, rsaPrivateKey, safeheronRsaPublicKey }` | `new XxxApi(config)` | `async/await` |
+| Python | config dict `{ 'apiKey', 'privateKey', 'safeheronPublicKey', 'baseUrl' }` | `XxxApi(config)` | sync method call |
+| Go | `safeheron.ApiConfig{ BaseUrl, ApiKey, RsaPrivateKey, SafeheronRsaPublicKey }` | `api.XxxApi{Client: sc}` | sync, returns `error` |
 
-1. Build a `SafeheronConfig` using its **builder**
-2. Use `ServiceCreator.create(XxxApiService.class, config)` to obtain an API interface
-3. Call methods on that interface, wrapping every call in `ServiceExecutor.execute(...)`
-
-All API interfaces live under `com.safeheron.client.api.*`
-All request/response classes live under `com.safeheron.client.request.*` / `com.safeheron.client.response.*`
+→ Full working examples: `references/{lang}/GETTING_STARTED.md`
 
 ---
 
 ## Quick Reference
 
 - **API Base URL**: `https://api.safeheron.vip`
-- **SDK Maven Artifact**: `com.safeheron:api-sdk-java:1.0.9`
 - **Auth Scheme**: RSA-4096 (signature) + AES-256-GCM (payload encryption)
+
+- **SDK:**
+
+| Language | Install |
+|----------|---------|
+| Java | `com.safeheron:api-sdk-java:1.0.9` (Maven) |
+| JS/TS | `npm install safeheron-api-sdk` |
+| Go | `go get github.com/Safeheron/safeheron-api-sdk-go` |
+| Python | `pip install safeheron-api-sdk-python` |
+
 - **SDK Repo**: https://github.com/Safeheron/safeheron-api-sdk-java
 - **API Docs**: https://docs.safeheron.com/api/en.html
 - **Safeheron Egress IPs** (for webhook/callback firewall rules): `18.162.105.64`, `18.167.22.59`, `18.167.21.182`
 
 ---
 
-## SDK API Service Classes
+## API Modules
 
-| API Area | Interface Class | Package |
-|----------|----------------|---------|
-| Wallet Account | `AccountApiService` | `com.safeheron.client.api` |
-| Coin Management | `CoinApiService` | `com.safeheron.client.api` |
-| Transaction | `TransactionApiService` | `com.safeheron.client.api` |
-| MPC Sign | `MPCSignApiService` | `com.safeheron.client.api` |
-| Web3 | `Web3ApiService` | `com.safeheron.client.api` |
-| Whitelist | `WhitelistApiService` | `com.safeheron.client.api` |
-| Compliance (KYT) | `ComplianceApiService` | `com.safeheron.client.api` |
-| Gas Station | `GasApiService` | `com.safeheron.client.api` |
-| Tools (AML Checker) | `ToolsApiService` | `com.safeheron.client.api` |
+| Module | Description |
+|--------|-------------|
+| Account | Wallet account CRUD |
+| Coin | Coin / address management |
+| Transaction | Create / query / speed-up transactions |
+| MpcSign | MPC signing (requires Safeheron Support to enable) |
+| Web3 | ethSign / personalSign / signTypedData / signTransaction |
+| Whitelist | Whitelist address CRUD |
+| Compliance | AML/KYT compliance reports |
+| Gas | Gas Station status & auto top-up |
+| Tools | AML address risk check |
+| Webhook | Event subscription & handling |
+
+For language-specific class names and call patterns, see `references/{lang}/WALLET_API.md` etc.
 
 ---
 
 ## Minimal Working Example
 
-```java
-import com.safeheron.client.api.AccountApiService;
-import com.safeheron.client.config.SafeheronConfig;
-import com.safeheron.client.request.CreateAccountRequest;
-import com.safeheron.client.response.CreateAccountResponse;
-import com.safeheron.client.utils.ServiceCreator;
-import com.safeheron.client.utils.ServiceExecutor;
-
-// 1. Build config with builder
-SafeheronConfig config = SafeheronConfig.builder()
-        .baseUrl("https://api.safeheron.vip")
-        .apiKey(System.getenv("SAFEHERON_API_KEY"))
-        .rsaPrivateKey(System.getenv("SAFEHERON_RSA_PRIVATE_KEY"))
-        .safeheronRsaPublicKey(System.getenv("SAFEHERON_PLATFORM_PUBLIC_KEY"))
-        .requestTimeout(20000L)
-        .build();
-
-// 2. Create API service via ServiceCreator
-AccountApiService accountApi = ServiceCreator.create(AccountApiService.class, config);
-
-// 3. Execute — always wrap with ServiceExecutor.execute()
-CreateAccountRequest req = new CreateAccountRequest();
-req.setAccountName("my-wallet");
-req.setHiddenOnUI(false);
-
-CreateAccountResponse resp = ServiceExecutor.execute(accountApi.createAccount(req));
-System.out.println("accountKey: " + resp.getAccountKey());
-```
+See `references/{lang}/GETTING_STARTED.md` (replace `{lang}` with `java`, `js`, `go`, or `python`)
 
 ---
 
 ## Reference Files
 
-| Topic | File |
-|-------|------|
-| **Getting Started (0 → first call)** | **[GETTING_STARTED.md](references/GETTING_STARTED.md)** |
-| **Security best practices (code-level, with examples)** | **[SECURITY_BEST_PRACTICES.md](references/SECURITY_BEST_PRACTICES.md)** |
-| **Security pre-launch checklist** | **[SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** |
-| **Policy configuration & approval tiers** | **[POLICY_STRATEGY.md](references/POLICY_STRATEGY.md)** |
-| **Deposit/withdrawal/sweep patterns** | **[BUSINESS_PATTERNS.md](references/BUSINESS_PATTERNS.md)** |
-| RSA+AES auth flow & key generation | [AUTH.md](references/AUTH.md) |
-| Maven/Gradle setup, Spring Boot config | [SDK_SETUP.md](references/SDK_SETUP.md) |
-| Wallet account CRUD & coin management | [WALLET_API.md](references/WALLET_API.md) |
-| Coin list, address validation, balance snapshot | [COIN_API.md](references/COIN_API.md) |
-| Transaction create, query, list, fee, cancel, speed-up | [TRANSACTION_API.md](references/TRANSACTION_API.md) |
-| MPC Sign flow + ERC-20 example | [MPC_SIGN_API.md](references/MPC_SIGN_API.md) |
-| Web3 signing (ethSign, personalSign, EIP-712, signTx) | [WEB3_API.md](references/WEB3_API.md) |
-| Whitelist CRUD with exact class names | [WHITELIST_API.md](references/WHITELIST_API.md) |
-| Compliance / KYT report | [COMPLIANCE_API.md](references/COMPLIANCE_API.md) |
-| Gas Station status & auto-refill | [GAS_API.md](references/GAS_API.md) |
-| Tools API — AML address checker | [TOOLS_API.md](references/TOOLS_API.md) |
-| Webhook events, handler, re-push | [WEBHOOK.md](references/WEBHOOK.md) |
-| API Co-Signer / Approval Callback + security deployment | [COSIGNER.md](references/COSIGNER.md) |
-| Error codes & troubleshooting | [ERROR_CODES.md](references/ERROR_CODES.md) |
-| FAQ — real-world Q&A (CN+EN) | [FAQ.md](references/FAQ.md) |
+> Replace `{lang}` with `java`, `js`, `go`, or `python`
+
+| Topic | File                                                                     |
+|-------|--------------------------------------------------------------------------|
+| **RSA+AES auth flow (all languages)** | **[references/AUTH.md](references/AUTH.md)**                             |
+| **Pre-launch security checklist (all languages)** | **[references/SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** |
+| **FAQ (all languages)** | **[references/FAQ.md](references/FAQ.md)**                |
+| **Getting Started (0 → first API call)** | **references/{lang}/GETTING_STARTED.md**                                 |
+| **Security best practices (with code examples)** | **references/{lang}/SECURITY_BEST_PRACTICES.md**                         |
+| **Policy configuration & approval tiers** | **references/{lang}/POLICY_STRATEGY.md**                                 |
+| **Deposit / withdrawal / sweep patterns** | **references/{lang}/BUSINESS_PATTERNS.md**                               |
+| SDK installation & configuration | references/{lang}/SDK_SETUP.md                                           |
+| Wallet account CRUD & coin management | references/{lang}/WALLET_API.md                                          |
+| Coin list, address validation, balance snapshot | references/{lang}/COIN_API.md                                            |
+| Transaction create, query, list, fee, cancel, speed-up | references/{lang}/TRANSACTION_API.md                                     |
+| MPC Sign flow | references/{lang}/MPC_SIGN_API.md                                        |
+| Web3 signing | references/{lang}/WEB3_API.md                                            |
+| Whitelist CRUD | references/{lang}/WHITELIST_API.md                                       |
+| Compliance / KYT report | references/{lang}/COMPLIANCE_API.md                                      |
+| Gas Station status & auto top-up | references/{lang}/GAS_API.md                                             |
+| Tools API — AML address checker | references/{lang}/TOOLS_API.md                                           |
+| Webhook events, handler, re-push | references/{lang}/WEBHOOK.md                                             |
+| API Co-Signer / Approval Callback + security deployment | references/{lang}/COSIGNER.md                                            |
+| Error codes & troubleshooting | references/{lang}/ERROR_CODES.md                                         |
 
 ---
 
 ## Important Notes
 
-### SDK Usage
-- **IP Whitelisting** is mandatory — register server IP in Safeheron Console first. API calls from unregistered IPs are rejected.
+- **IP Whitelisting** is mandatory — register your server IP in Safeheron Console first. API calls from unregistered IPs are rejected.
 - **Idempotency** — generate `customerRefId` (UUID) and **save to DB before calling Safeheron**. On timeout, retry with the same ID. Error `9001` = duplicate refId (query existing instead of creating new).
 - All monetary amounts are **strings** — never use float/double.
-- `requestTimeout` is **Long** (milliseconds), not int. Use `20000L`.
-- `pageSize` / `pageNumber` in list requests are **Long**, not int.
-- `SafeheronConfig` builder: Safeheron platform public key → `.safeheronRsaPublicKey(...)`, your PKCS8 private key → `.rsaPrivateKey(...)`. Do NOT swap them.
-- **Web3 API** requires a Web3 wallet (`accountType=WEB3_ACCOUNT`). Vault account keys cause "account not found".
-- **MPC Sign** requires a special policy — contact Safeheron Support to enable (error `9028` = policy not found).
-- Common auth errors: `1010` = wrong Safeheron platform public key; `1012` = wrong private key or not PKCS8 format.
+- **Web3 API** requires a Web3 wallet (`accountType=WEB3_ACCOUNT`). Using a Vault account key causes "account not found".
+- **MPC Sign** requires a special policy — contact Safeheron Support to enable (error `9028` = policy not configured).
 - SDK is **backward compatible** — upgrading only adds new methods, never removes old ones.
 
