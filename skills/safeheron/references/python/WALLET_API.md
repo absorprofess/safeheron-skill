@@ -88,7 +88,7 @@ for acct in accounts:
 | `accountIndex` | int | Derivation path index |
 | `accountTag` | str | Tag: `DEPOSIT`, `NONE`, etc. |
 | `hiddenOnUI` | bool | Hidden from UI |
-| `accountType` | str | `VAULT_ACCOUNT` or `WEB3_ACCOUNT` |
+| `accountType` | str | `VAULT_ACCOUNT` |
 
 ---
 
@@ -199,5 +199,5 @@ for coin in coins:
 ## Best Practices
 
 - `accountKey` is the permanent, immutable identifier for a wallet -- store it after creation.
-- Web3 wallets (`accountType = WEB3_ACCOUNT`) use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
+- Web3 wallets use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
 - `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

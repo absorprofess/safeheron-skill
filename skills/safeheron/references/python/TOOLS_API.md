@@ -11,7 +11,7 @@ Use Case: Check whether a recipient address is flagged as high-risk **before** s
 ## Imports
 
 ```python
-from safeheron_api_sdk_python.api.tools_api import ToolsApi
+from safeheron_api_sdk_python.api.tools_api import ToolsApi, AmlCheckerRequestRequest, AmlCheckerRetrievesRequest
 ```
 
 ## Create API Instance
@@ -29,10 +29,10 @@ Assessment is asynchronous: submit the address, then poll for results.
 ### Step 1: Submit Address for AML Assessment
 
 ```python
-resp = tools_api.aml_checker_request({
-    'network': 'Ethereum',  # "Bitcoin", "Ethereum", or "Tron"
-    'address': '0xAbCd1234...',
-})
+param = AmlCheckerRequestRequest()
+param.network = 'Ethereum'  # "Bitcoin", "Ethereum", or "Tron"
+param.address = '0xAbCd1234...'
+resp = tools_api.aml_checker_request(param)
 request_id = resp['requestId']  # save this for polling
 ```
 
@@ -57,7 +57,9 @@ request_id = resp['requestId']  # save this for polling
 import time
 
 for i in range(30):
-    resp = tools_api.aml_checker_retrieves({'requestId': request_id})
+    retrieve_param = AmlCheckerRetrievesRequest()
+    retrieve_param.requestId = request_id
+    resp = tools_api.aml_checker_retrieves(retrieve_param)
     mist_track = resp.get('mistTrack', {})
     if mist_track.get('status', '').upper() == 'SUCCESS':
         break
@@ -85,7 +87,7 @@ print(f"Status:     {mist_track.get('status')}")
 ```python
 import uuid
 import time
-from safeheron_api_sdk_python.api.tools_api import ToolsApi
+from safeheron_api_sdk_python.api.tools_api import ToolsApi, AmlCheckerRequestRequest, AmlCheckerRetrievesRequest
 from safeheron_api_sdk_python.api.transaction_api import TransactionApi, CreateTransactionRequest
 
 tools_api = ToolsApi(config)
@@ -94,16 +96,18 @@ transaction_api = TransactionApi(config)
 destination_address = "0xAbCd1234..."
 
 # 1. Submit address for assessment
-submit_resp = tools_api.aml_checker_request({
-    'network': 'Ethereum',
-    'address': destination_address,
-})
+submit_param = AmlCheckerRequestRequest()
+submit_param.network = 'Ethereum'
+submit_param.address = destination_address
+submit_resp = tools_api.aml_checker_request(submit_param)
 request_id = submit_resp['requestId']
 
 # 2. Poll until result is ready
 result = None
 for i in range(30):
-    result = tools_api.aml_checker_retrieves({'requestId': request_id})
+    retrieve_param = AmlCheckerRetrievesRequest()
+    retrieve_param.requestId = request_id
+    result = tools_api.aml_checker_retrieves(retrieve_param)
     if result.get('mistTrack', {}).get('status', '').upper() == 'SUCCESS':
         break
     time.sleep(2)

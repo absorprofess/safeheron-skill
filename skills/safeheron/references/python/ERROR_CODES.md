@@ -111,7 +111,7 @@ param.txAmount = str(amount)  # "0.3"
 
 **Symptom:** Web3 API returns "account not found".
 
-**Cause:** Web3 APIs require a **Web3 wallet** (`accountType=WEB3_ACCOUNT`). Using a regular vault account key causes this error.
+**Cause:** Web3 APIs require a **Web3 wallet**. Using a regular vault account key causes this error.
 
 **Resolution:** Create a Web3 wallet in Safeheron Console, then copy its `accountKey`.
 

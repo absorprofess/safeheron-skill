@@ -89,17 +89,14 @@ app.listen(9999, () => {
 
 ## Approval Callback Request
 
-Safeheron sends an **encrypted HTTP POST** to your callback URL. The request body structure:
+Safeheron sends an **encrypted HTTP POST** to your callback URL.
 
 ```json
 {
   "timestamp": "1623038312088",
   "sig":        "<signed-with-cosigner-identity-private-key-base64>",
-  "key":        "<RSA-encrypted-AES-key-base64>",
   "bizContent": "<AES-encrypted-callback-payload-base64>",
-  "version":    "<protocol-version>",
-  "rsaType":    "ECB_OAEP",
-  "aesType":    "GCM_NOPADDING"
+  "version":    "v3"
 }
 ```
 
@@ -110,12 +107,22 @@ Safeheron sends an **encrypted HTTP POST** to your callback URL. The request bod
   ```bash
   sudo ./cosigner export-public-key
   ```
-- The `key` field is encrypted with your **Callback Public Key**.
-- Decrypt using the corresponding **Callback Private Key**.
-
+- The API Co-Signer, acting as the client of the Approval Callback Service, sends a POST request and signs the request data using its private key.
+- Upon receiving the request, the Approval Callback Service uses the API Co-Signer's public key to authenticate the request data, ensuring that the request originates from the API Co-Signer.
 ---
 
-## Callback Types
+## Decrypted Callback Payload Structure
+
+After decryption, `bizContent` is a JSON object:
+
+```json
+{
+  "type": "TRANSACTION_APPROVAL",
+  "customerContent": { ... }
+}
+```
+
+### Callback Types
 
 | `type` | Description |
 |--------|-------------|
@@ -125,38 +132,88 @@ Safeheron sends an **encrypted HTTP POST** to your callback URL. The request bod
 
 ---
 
-## TRANSACTION_APPROVAL Payload Key Fields
+## TRANSACTION_APPROVAL Payload (`customerContent`)
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `txKey` | string | Safeheron transaction key |
-| `customerRefId` | string | Your reference ID |
-| `coinKey` | string | Coin identifier |
-| `txAmount` | string | Transaction amount |
-| `sourceAccountKey` | string | Sender wallet key |
-| `destinationAddress` | string | Recipient address |
-| `destinationAccountType` | string | e.g. `ONE_TIME_ADDRESS` |
-| `amlList` | Array | AML assessments (provider, riskLevel, etc.) |
+| `txKey` | String | Safeheron transaction key |
+| `customerRefId` | String | Your reference ID |
+| `txHash` | String | Transaction hash (if available) |
+| `coinKey` | String | Coin identifier |
+| `txAmount` | String | Transaction amount |
+| `transactionType` | String | Transaction type |
+| `transactionStatus` | String | Current status |
+| `transactionSubStatus` | String | Sub-status |
+| `sourceAccountKey` | String | Sender wallet key |
+| `sourceAccountType` | String | e.g. `VAULT_ACCOUNT` |
+| `sourceAddress` | String | Sender address |
+| `destinationAccountKey` | String | Recipient wallet key |
+| `destinationAccountType` | String | e.g. `ONE_TIME_ADDRESS` |
+| `destinationAddress` | String | Recipient address |
+| `destinationAddressList` | List | Multi-dest address list |
+| `estimateFee` | String | Estimated fee |
+| `feeCoinKey` | String | Fee coin |
+| `note` | String | Transaction note |
+| `customerExt1` | String | Custom field 1 |
+| `customerExt2` | String | Custom field 2 |
+| `amlLock` | String | AML status: `YES` / `NO` |
+| `amlList` | List\<Aml\> | AML assessments (provider, riskLevel, etc.) |
+| `createTime` | Long | Unix timestamp (ms) |
+
+---
+
+## WEB3_SIGN_APPROVAL Payload (`customerContent`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | Web3 sign request key |
+| `customerRefId` | String | Your reference ID |
+| `transactionStatus` | String | Status |
+| `subjectType` | String | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
+| `accountKey` | String | Web3 wallet account key |
+| `sourceAddress` | String | Signing address |
+| `createTime` | Long | Unix timestamp (ms) |
+| `note` | String | Note |
+| `customerExt1` | String | Custom field 1 |
+| `customerExt2` | String | Custom field 2 |
+| `message` | Object | For personalSign/ethSignTypedData: `{chainId, data}` |
+| `messageHash` | Object | For ethSign: `{chainId, data:[hashes]}` |
+| `transaction` | Object | For ethSignTransaction: `{chainId, to, value, gasLimit, gasPrice, maxFeePerGas, maxPriorityFeePerGas, nonce, data}` |
+
+---
+
+## MPC_SIGN_APPROVAL Payload (`customerContent`)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `txKey` | String | MPC sign request key |
+| `customerRefId` | String | Your reference ID |
+| `transactionStatus` | String | Status |
+| `sourceAccountKey` | String | Wallet key |
+| `createTime` | Long | Unix timestamp (ms) |
+| `customerExt1` | String | Custom field 1 |
+| `customerExt2` | String | Custom field 2 |
+| `signAlg` | String | `Secp256k1` or `Ed25519` |
+| `hashs` | List | Hashes to sign: `[{note, hash}]` |
+| `dataList` | List | Raw data list: `[{note, data}]` |
 
 ---
 
 ## Approval Callback Response
 
-Your callback service must return an **encrypted response**:
+Your callback service must return an **encrypted response** using the same AES+RSA scheme, signed with your Callback Private Key:
 
 ```json
 {
-  "approveStatus": "APPROVE",
-  "customerRefId": "<echo-back-from-request>",
-  "rejectReason":  ""
+  "action": "APPROVE",
+  "approvalId": "tx*******"
 }
 ```
 
 | Field | Type | Values |
 |-------|------|--------|
-| `approveStatus` | string | `APPROVE` or `REJECT` |
-| `customerRefId` | string | Echo back the incoming `customerRefId` |
-| `rejectReason` | string | Optional reason when rejecting |
+| `action` | String | `APPROVE` or `REJECT` |
+| `approvalId` | String | Echo back the incoming `txKey` |
 
 ---
 
@@ -204,15 +261,32 @@ function evaluateTransaction(payload: any): string {
 
 ## API Co-Signer Deployment Notes
 
-| Topic | Detail |
-|-------|--------|
-| Polling interval | v2.x: every 5s; v1.x: every 1s |
-| Callback timeout | Response must arrive within 5s of Co-Signer server time |
-| Production | Callback URL is **required** for production teams |
-| Test environment | Callback URL is optional |
-| KMS support | AWS KMS, GCP KMS, Alibaba Cloud KMS |
+| Topic | Detail                                                                  |
+|-------|-------------------------------------------------------------------------|
+| Polling interval | v2.x: every 5s; v1.x: every 1s                                          |
+| Callback timeout | Response must arrive within 5s of Co-Signer server time                 |
+| Production | Callback URL is **required** for production teams                       |
+| Test environment | Callback URL is optional                                                |
+| KMS support | AWS KMS, GCP KMS, Alibaba Cloud KMS                                    |
 | CLI commands | `sudo ./cosigner start`, `sudo ./cosigner stop`, `sudo ./cosigner logs` |
-| Export Co-Signer public key | `sudo ./cosigner export-public-key` |
+| Export Co-Signer public key | `sudo ./cosigner export-public-key`                                     |
+| Minimum server specs | Refer to Safeheron Console deployment guide                             |
+| Config changes | Modify `.env` then run `stop` + `start` to reload                       |
+| Update Callback URL | Web Console update takes effect within 5 min — no Co-Signer restart needed |
+| IP whitelist | Add Co-Signer host IP to the API Key IP whitelist in Console            |
+
+---
+
+## New vs. Old Co-Signer Version Differences
+
+| Aspect | New Version (v2.x+) | Old Version (v1.x) |
+|--------|--------------------|--------------------|
+| RSA key pairs required | **1 pair** | 2 pairs |
+| Polling interval | 5 seconds | 1 second |
+| Cancel transaction in DB | Automatic | Manual SQL required |
+| Config management | Secrets Manager (recommended) + .env | Config file |
+
+**Old version** requires configuring the public keys `biz_pubkey` and `api_privkey` in two pairs of public and private keys in the configuration file. The new version only requires registering `biz_pubkey` in the Web console.
 
 ---
 
@@ -235,8 +309,8 @@ sudo ./cosigner export-public-key   # Export Co-Signer identity public key
 |-----|-------|---------|
 | **Co-Signer Identity Private Key** | Safeheron (Co-Signer internal) | Signs callback requests sent to your service |
 | **Co-Signer Identity Public Key** | Exported via `export-public-key` | You use this to verify callback request signatures |
-| **Callback Public Key** | You generate & upload to Console | Safeheron Co-Signer encrypts the callback `key` field with this |
-| **Callback Private Key** | You hold securely | Your callback service uses this to decrypt the AES key |
+| **Callback Public Key** | You generate & upload to Console | Safeheron Co-Signer needs to use this public key to verify the signature in the Callback's response data |
+| **Callback Private Key** | You hold securely | Your callback service needs to use this private key to sign the Callback response body |
 
 ---
 
@@ -245,39 +319,84 @@ sudo ./cosigner export-public-key   # Export Co-Signer identity public key
 | Issue | Cause | Resolution |
 |-------|-------|------------|
 | `Illegal IP` in logs | Co-Signer host IP not in API Key whitelist | Add IP to whitelist in Console, restart Co-Signer |
-| `The final private key fragment is not exists` | Co-Signer not yet activated | Normal -- proceed with activation workflow |
+| `The final private key fragment is not exists` | Co-Signer not yet activated | Normal — proceed with activation workflow |
 | Transaction stays in `SUBMITTED` | Co-Signer not running or not polling | Check `./cosigner logs -f` for errors |
 | `Timestamp out of range` | Server clock skew > 5s | Sync Co-Signer server time with NTP |
 | Docker login failure | Token expired or firewall blocks `registry.gitlab.com` | Re-download CLI from Console; check firewall rules |
 
 ---
 
+## Official SDK Demo
+
+See the SDK repository for a working callback demo:
+https://github.com/Safeheron/safeheron-api-sdk-js
+
+---
+
 ## Security Deployment Requirements (API Co-Signer Host)
+
+These requirements apply to the server where API Co-Signer is deployed. Non-compliance can result in asset loss.
 
 ### Mandatory Security Principles
 
 | Principle | Requirement |
 |-----------|------------|
-| Strong passwords | All accounts must use randomly generated strong passwords |
-| MFA everywhere | Enable 2FA/MFA on every account and service |
-| Minimum privilege | Each account/role has only the permissions needed |
-| Minimum exposure | Close all unnecessary ports. Only port `9999` needs to be open |
-| Secure secret storage | Store all secrets in a dedicated secrets manager |
+| Strong passwords | All accounts (DB, cloud, OS) must use randomly generated strong passwords — no weak/default credentials |
+| MFA everywhere | Enable 2FA/MFA on every account and service that supports it |
+| Minimum privilege | Each account/role has only the permissions needed for its specific function |
+| Minimum exposure | Close all unnecessary ports. Only port `9999` (business) needs to be open |
+| Secure secret storage | Store all secrets (passwords, private keys, Secret Keys) in a dedicated secrets manager (e.g., 1Password, AWS Secrets Manager). Never transmit secrets via chat/email/documents |
 
 ### Host Security Controls
 
 | Control | Description |
 |---------|-------------|
 | Network isolation | Deploy Co-Signer in a **private isolated network**. No public internet inbound access |
-| IP whitelist | Only Safeheron API gateway and your internal systems can reach the Co-Signer host |
+| IP whitelist | Only your internal systems can reach the Co-Signer host |
 | MFA (host login) | All host access requires MFA |
+| CWPP | Cloud Workload Protection Platform — real-time threat monitoring on the Co-Signer instance |
+| EDR/XDR | Endpoint/Extended Detection & Response — continuous threat detection and automated response |
+| SIEM | Collect host login and system activity logs; configure real-time alerts |
+| PAM | Privileged Access Management — audit all privileged operations on the host |
+
+### Required Network Connectivity (Outbound Only)
+
+API Co-Signer has **zero inbound** from the internet. Configure firewall to allow only these outbound connections:
+
+**Always required (runtime):**
+- `https://api.safeheron.vip:443`
+- `wss://gm-gateway.safeheron.vip:443`
+- MySQL (your DB host)
+- Approval Callback Service (your internal service)
+
+**If using AWS KMS:**
+- `https://*.amazonaws.com:443`
+- `https://*.amazonaws.com.cn:443`
+
+**If using Alibaba Cloud KMS:**
+- `https://*.cryptoservice.kms.aliyuncs.com:443`
+
+**If using GCP Cloud KMS:**
+- `https://*.cloudkms.googleapis.com:443`
+- `https://cloudkms.googleapis.com:443`
+- `http://metadata.google.internal:80`
+
+**Only during install/update:**
+- `registry.gitlab.com:443`
+- `https://prod-safeheron-openapi.s3.ap-east-1.amazonaws.com:443`
+
+**Only on first install (Docker bootstrap):**
+- `https://get.docker.com:443`
+- `https://download.docker.com:443`
+- `https://api.github.com:443`
+- `https://github.com:443`
 
 ### Callback Service Security
 
 The Approval Callback Service must:
 
 1. **Verify the Co-Signer identity signature** on every request before processing
-2. **Only accept connections from the Co-Signer host IP**
-3. **Validate `customerRefId`** -- reject any callback for a `customerRefId` not found in your DB
-4. **Validate amount and destination** -- cross-check against the original withdrawal order
-5. **Respond within 5 seconds** -- Co-Signer will time out otherwise (sync server time via NTP)
+2. **Only accept connections from the Co-Signer host IP** — configure firewall/IP whitelist on the callback service
+3. **Validate `customerRefId`** — reject any callback for a `customerRefId` not found in your DB
+4. **Validate amount and destination** — cross-check against the original withdrawal order
+5. **Respond within 5 seconds** — Co-Signer will time out otherwise (sync server time via NTP)

@@ -67,13 +67,13 @@ customer_ref_id = str(uuid.uuid4())
 **2-3. AML check is mandatory before every transfer.**
 
 ```python
-from safeheron_api_sdk_python.api.tools_api import ToolsApi
+from safeheron_api_sdk_python.api.tools_api import ToolsApi, AmlCheckerRequestRequest
 
 tools_api = ToolsApi(config)
-resp = tools_api.aml_checker_request({
-    'network': 'Ethereum',
-    'address': destination_address,
-})
+param = AmlCheckerRequestRequest()
+param.network = 'Ethereum'
+param.address = destination_address
+resp = tools_api.aml_checker_request(param)
 # Poll for result and block high-risk addresses
 ```
 

@@ -78,6 +78,12 @@ for _, acct := range res.Content {
 |-------|----------|------|-------------|
 | `PageSize` | No | `int` | Items per page (default 10) |
 | `PageNumber` | No | `int` | Page number, 1-indexed |
+| `HiddenOnUI` | No | `*bool` | Filter by hidden status |
+| `AutoFuel` | No | `*bool` | Filter by auto gas refill setting |
+| `Archived` | No | `*bool` | Filter by archived status |
+| `NamePrefix` | No | `string` | Filter accounts whose name starts with this prefix |
+| `NameSuffix` | No | `string` | Filter accounts whose name ends with this suffix |
+| `CustomerRefId` | No | `string` | Filter by your custom reference ID |
 
 **ListAccountResponse Key Fields:**
 
@@ -94,10 +100,15 @@ for _, acct := range res.Content {
 |-------|------|-------------|
 | `AccountKey` | `string` | Unique wallet identifier |
 | `AccountName` | `string` | Wallet display name |
+| `CustomerRefId` | `string` | Your custom reference ID |
 | `AccountIndex` | `int32` | Derivation path index |
+| `AccountType` | `string` | `VAULT_ACCOUNT` |
 | `AccountTag` | `string` | Tag: `DEPOSIT`, `NONE`, etc. |
 | `HiddenOnUI` | `bool` | Hidden from UI |
-| `AccountType` | `string` | `VAULT_ACCOUNT` or `WEB3_ACCOUNT` |
+| `AutoFuel` | `bool` | Auto gas refill enabled |
+| `Archived` | `bool` | Whether the account is archived |
+| `UsdBalance` | `string` | Total USD balance across all coins |
+| `PubKeys` | `[]struct{SignAlg, PubKey string}` | MPC public key shards |
 
 ---
 
@@ -187,5 +198,5 @@ for _, coin := range coins {
 
 - `PageSize` and `PageNumber` are `int` type in Go (not `Long` like Java).
 - `accountKey` is the permanent, immutable identifier for a wallet -- store it after creation.
-- Web3 wallets (`AccountType = "WEB3_ACCOUNT"`) use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
+- Web3 wallets use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
 - `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

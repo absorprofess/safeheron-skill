@@ -10,7 +10,7 @@ description: >
 
 # Safeheron API Skill
 
-A complete reference and integration guide for the Safeheron MPC Custody API and SDKs.
+A complete reference and integration guide for the Safeheron API and SDKs.
 
 **When NOT to use:** For generic blockchain/Web3 questions unrelated to Safeheron's API or SDK; for other MPC custody providers.
 
@@ -156,7 +156,7 @@ For language-specific class names and call patterns, see `references/{lang}/WALL
 - **IP Whitelisting** is mandatory — register your server IP in Safeheron Console first. API calls from unregistered IPs are rejected.
 - **Idempotency** — generate `customerRefId` (UUID) and **save to DB before calling Safeheron**. On timeout, retry with the same ID. Error `9001` = duplicate refId (query existing instead of creating new).
 - All monetary amounts are **strings** — never use float/double.
-- **Web3 API** requires a Web3 wallet (`accountType=WEB3_ACCOUNT`). Using a Vault account key causes "account not found".
+- **Web3 API** requires a Web3 wallet. Using a Vault account key causes "account not found".
 - **MPC Sign** requires a special policy — contact Safeheron Support to enable (error `9028` = policy not configured).
 - SDK is **backward compatible** — upgrading only adds new methods, never removes old ones.
 

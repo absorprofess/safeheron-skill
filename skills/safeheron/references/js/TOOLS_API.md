@@ -69,11 +69,28 @@ console.log('Status:', result.mistTrack.status);
 | Field | Type | Description |
 |-------|------|-------------|
 | `requestId` | string | The assessment request ID |
+| `createTime` | string | Timestamp when the request was created (ms) |
 | `network` | string | Blockchain network |
 | `address` | string | Assessed address |
+| `isMaliciousAddress` | boolean | Whether the address is flagged as malicious |
 | `mistTrack` | object | MistTrack risk assessment result |
-| `mistTrack.status` | string | Assessment status (EVALUATING / SUCCESS) |
+| `mistTrack.status` | string | Assessment status: `EVALUATING` / `SUCCESS` |
+| `mistTrack.evaluationTime` | string | Time taken for evaluation (ms) |
+| `mistTrack.score` | string | Risk score value |
 | `mistTrack.riskLevel` | string | `Low`, `Moderate`, `High`, `Severe` |
+| `mistTrack.detailList` | string[] | List of risk detail tags |
+| `mistTrack.riskDetail` | object[] | Detailed risk breakdown items |
+
+**mistTrack.riskDetail Item Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `riskType` | string | Type of risk detected |
+| `entity` | string | Associated entity name |
+| `hopNum` | string | Number of hops from risk source |
+| `exposureType` | string | Direct or indirect exposure |
+| `volume` | string | Transaction volume involved |
+| `percent` | string | Percentage of risk exposure |
 
 ---
 

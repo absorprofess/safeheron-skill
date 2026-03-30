@@ -2,7 +2,7 @@
 
 Web3 Wallet Accounts support arbitrary EVM signing: raw message hashes, arbitrary messages (personalSign), structured data (EIP-712), and raw EVM transactions.
 
-> **Web3 API requires a Web3 wallet account.** Use `accountType=WEB3_ACCOUNT` when querying accounts. Using a regular `VAULT_ACCOUNT` key will result in "account not found" errors.
+> **Web3 API requires a Web3 wallet account.** Using a regular `VAULT_ACCOUNT` key will result in "account not found" errors.
 
 ---
 
@@ -241,7 +241,7 @@ SUBMITTED -> SIGNING -> SIGN_COMPLETED
 
 ## Best Practices
 
-- **Web3 API requires Web3 wallet** (`accountType=WEB3_ACCOUNT`). Regular vault account keys cause "account not found" errors.
+- **Web3 API requires Web3 wallet**. Regular vault account keys cause "account not found" errors.
 - Web3 wallets must have a Web3 signing policy configured -- contact Safeheron Support to enable.
 - `CustomerRefId` must be unique (max 100 chars). Duplicate refId returns error code `9001`.
 - All sign requests must also be approved via the configured approval policy before signing begins.

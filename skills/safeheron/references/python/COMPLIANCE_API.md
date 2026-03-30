@@ -13,7 +13,7 @@ Two main integration points:
 ## Imports
 
 ```python
-from safeheron_api_sdk_python.api.compliance_api import ComplianceApi
+from safeheron_api_sdk_python.api.compliance_api import ComplianceApi, KytReportRequest
 ```
 
 ## Create API Instance
@@ -29,9 +29,9 @@ compliance_api = ComplianceApi(config)
 After a transaction completes, retrieve its AML/KYT risk assessment:
 
 ```python
-# Use a dict or request object with txKey
-param = {'txKey': 'your-tx-key'}
-# Optional: param = {'customerRefId': 'your-ref-id'}
+param = KytReportRequest()
+param.txKey = 'your-tx-key'
+# Optional: param.customerRefId = 'your-ref-id'
 
 resp = compliance_api.kyt_report(param)
 

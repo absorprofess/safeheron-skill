@@ -53,10 +53,35 @@ fmt.Printf("Transaction created, txKey: %s\n", txKey)
 | `DestinationAccountType` | Yes | `string` | `ONE_TIME_ADDRESS`, `VAULT_ACCOUNT`, or `WHITELISTING_ACCOUNT` |
 | `DestinationAddress` | Cond. | `string` | Required when `DestinationAccountType=ONE_TIME_ADDRESS` |
 | `DestinationAccountKey` | Cond. | `string` | Required when type is `VAULT_ACCOUNT` (accountKey) or `WHITELISTING_ACCOUNT` (whitelistKey) |
-| `TxFeeLevel` | No | `string` | `LOW` / `MIDDLE` / `HIGH` |
-| `Note` | No | `string` | Transaction note (max 180 chars) |
+| `TxFeeLevel` | No | `string` | `LOW` / `MIDDLE` / `HIGH` — mutually exclusive with `FeeRateDto` |
+| `FeeRateDto` | No | `FeeRateDto` | Custom fee parameters — mutually exclusive with `TxFeeLevel` |
+| `MaxTxFeeRate` | No | `string` | Maximum acceptable fee rate (transaction rejected if exceeded) |
+| `TreatAsGrossAmount` | No | `bool` | If true, `TxAmount` is the total including fees |
+| `Memo` | No | `string` | Memo field (XRP, EOS, COSMOS-family chains) |
+| `DestinationTag` | No | `string` | Destination tag (XRP) |
+| `IsRbf` | No | `*bool` | Enable Replace-By-Fee for Bitcoin transactions |
+| `FailOnContract` | No | `*bool` | Reject if destination is a contract address (default true) |
+| `FailOnAml` | No | `*bool` | Reject if destination fails AML check (default true) |
+| `Nonce` | No | `int64` | Custom nonce for EVM chains |
+| `SequenceNumber` | No | `int64` | Custom sequence number (Aptos, Stellar) |
+| `BalanceVerifyType` | No | `string` | Balance verification mode |
+| `Note` | No | `string` | Internal transaction note (max 180 chars) |
 | `CustomerExt1` | No | `string` | Custom field 1 (max 255 chars) |
 | `CustomerExt2` | No | `string` | Custom field 2 (max 255 chars) |
+
+**FeeRateDto Fields:**
+
+| Field | Type | Chain |
+|-------|------|-------|
+| `FeeRate` | `string` | Bitcoin / UTXO (sat/vByte) |
+| `GasLimit` | `string` | EVM |
+| `MaxPriorityFee` | `string` | EVM EIP-1559 (wei) |
+| `MaxFee` | `string` | EVM EIP-1559 (wei) |
+| `GasPremium` | `string` | Filecoin |
+| `GasFeeCap` | `string` | Filecoin |
+| `GasBudget` | `string` | Aptos |
+| `GasUnitPrice` | `string` | Aptos |
+| `MaxGasAmount` | `string` | Aptos |
 
 ---
 

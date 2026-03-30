@@ -13,7 +13,7 @@ The `GasApi` provides:
 ## Imports
 
 ```python
-from safeheron_api_sdk_python.api.gas_api import GasApi
+from safeheron_api_sdk_python.api.gas_api import GasApi, GasTransactionsGetByTxKeyRequest
 ```
 
 ## Create API Instance
@@ -63,7 +63,9 @@ for cfg in resp.get('configuration', []):
 Query gas refill records associated with a specific transaction:
 
 ```python
-resp = gas_api.gas_transactions_ge_b_tx_key({'txKey': 'your-tx-key'})
+param = GasTransactionsGetByTxKeyRequest()
+param.txKey = 'your-tx-key'
+resp = gas_api.gas_transactions_ge_b_tx_key(param)
 ```
 
 > **Note:** This endpoint works with `txKey` values from the V3 transaction API.

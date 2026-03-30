@@ -92,10 +92,22 @@ for (AccountResponse acct : accounts) {
 |-------|------|-------------|
 | `accountKey` | String | Unique wallet identifier |
 | `accountName` | String | Wallet display name |
-| `accountIndex` | Integer | Derivation path index |
+| `customerRefId` | String | Your custom reference ID |
+| `accountIndex` | Long | Derivation path index |
+| `accountType` | String | `VAULT_ACCOUNT` |
 | `accountTag` | String | Tag: `DEPOSIT`, `NONE`, etc. |
 | `hiddenOnUI` | Boolean | Hidden from UI |
-| `accountType` | String | `VAULT_ACCOUNT` or `WEB3_ACCOUNT` |
+| `autoFuel` | Boolean | Auto gas refill enabled |
+| `archived` | Boolean | Whether the account is archived |
+| `usdBalance` | String | Total USD balance across all coins |
+| `pubKeys` | `List<PubKey>` | MPC public key shards |
+
+**PubKey Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `signAlg` | String | Signature algorithm (e.g. `ECDSA`) |
+| `pubKey` | String | Public key value |
 
 ---
 
@@ -244,5 +256,5 @@ for (AccountCoinResponse coin : coins) {
 
 - `pageSize` and `pageNumber` fields are **Long** type, not int.
 - `accountKey` is the permanent, immutable identifier for a wallet — store it after creation.
-- Web3 wallets (`accountType = WEB3_ACCOUNT`) use a separate set of APIs — see [WEB3_API.md](WEB3_API.md).
+- Web3 wallets use a separate set of APIs — see [WEB3_API.md](WEB3_API.md).
 - `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

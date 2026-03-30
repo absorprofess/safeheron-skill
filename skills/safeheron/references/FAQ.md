@@ -209,7 +209,7 @@ A: HTTP or HTTPS. URL must start with `http://` or `https://`. Some specific dom
 
 **Q: Web3 API returns "account not found". Why?**
 
-A: All Web3 API calls require a **Web3 wallet** (`accountType = WEB3_ACCOUNT`). Using a regular vault account key (`accountType = VAULT_ACCOUNT`) causes this error.
+A: All Web3 API calls require a **Web3 wallet**. Using a regular vault account key (`accountType = VAULT_ACCOUNT`) causes this error.
 
 ---
 
