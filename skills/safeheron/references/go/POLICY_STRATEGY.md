@@ -73,7 +73,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
     // 1. Verify signature using Co-Signer identity public key
     bizContent, err := coSignerConverter.RequestV3Convert(callbackPayload)
     if err != nil {
-        log.Printf("REJECT: signature verification failed")
+        log.Printf("Co-Signer verification failed: %v", err)
+        http.Error(w, "Verification failed", http.StatusForbidden)
         return
     }
 

@@ -12,7 +12,7 @@ This guide walks through the complete setup to make your first Safeheron API cal
 
 ---
 
-## Step 1 — Generate RSA Key Pair
+## Step 1 -- Generate RSA Key Pair
 
 Safeheron uses RSA-4096 for request signing and payload encryption. You need to generate your own key pair.
 
@@ -54,7 +54,7 @@ grep -v "BEGIN\|END" api_pkcs8.pem | tr -d '\n'
 
 ---
 
-## Step 2 — Configure API Account in Safeheron Console
+## Step 2 -- Configure API Account in Safeheron Console
 
 Log in to **Safeheron Web Console** and complete the following steps.
 
@@ -93,7 +93,7 @@ After completing Console setup, you should have:
 
 ---
 
-## Step 3 — Add SDK to Project Dependencies
+## Step 3 -- Add SDK to Project Dependencies
 
 ### Maven
 
@@ -103,8 +103,7 @@ Add to `pom.xml`:
 <dependency>
     <groupId>com.safeheron</groupId>
     <artifactId>api-sdk-java</artifactId>
-    <!-- Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases -->
-    <version>1.0.9</version>
+    <version>1.0.10</version>
 </dependency>
 ```
 
@@ -124,8 +123,7 @@ Add to `build.gradle`:
 
 ```groovy
 dependencies {
-    // Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases
-    implementation 'com.safeheron:api-sdk-java:1.0.9'
+    implementation 'com.safeheron:api-sdk-java:1.0.10'
 }
 ```
 
@@ -133,8 +131,7 @@ Or for `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    // Check latest version: https://github.com/Safeheron/safeheron-api-sdk-java/releases
-    implementation("com.safeheron:api-sdk-java:1.0.9")
+    implementation("com.safeheron:api-sdk-java:1.0.10")
 }
 ```
 
@@ -150,7 +147,7 @@ mvn install -Dmaven.test.skip=true
 
 ---
 
-## Step 4 — Configure Environment & Inject Credentials
+## Step 4 -- Configure Environment & Inject Credentials
 
 **Never hardcode credentials in source code.**
 
@@ -294,7 +291,7 @@ config.yaml
 
 ---
 
-## Step 5 — Your First API Request
+## Step 5 -- Your First API Request
 
 Below is a complete, runnable example: create a wallet, add ETH and USDT, then list accounts.
 

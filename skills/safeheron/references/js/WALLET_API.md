@@ -31,7 +31,11 @@ const accountKey = resp.accountKey;  // save this -- permanent wallet identifier
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `accountName` | Yes | string | Wallet display name |
+| `customerRefId` | No | string | Merchant unique business ID (max 100 chars). Duplicate submissions with the same ID return the same wallet |
 | `hiddenOnUI` | No | boolean | If true, wallet is hidden in Web Console / App |
+| `autoFuel` | No | boolean | If true, Gas Station auto-tops up gas when a transaction is initiated. Default: false |
+| `accountTag` | No | string | Tag applied at creation. Values: `DEPOSIT`, `NONE`. Required for Auto-Sweep |
+| `coinKeyList` | No | Array\<string\> | Coin keys to add at creation (max 20) |
 
 **CreateAccountResponse Fields:**
 
@@ -68,6 +72,15 @@ for (const acct of accounts) {
 | `hiddenOnUI` | No | boolean | Filter by visibility |
 | `namePrefix` | No | string | Filter by account name prefix |
 | `nameSuffix` | No | string | Filter by account name suffix |
+
+**PageResult Key Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pageNumber` | number | Current page number (1-indexed) |
+| `pageSize` | number | Number of items per page |
+| `totalElements` | number | Total number of records across all pages |
+| `content` | `Array<T>` | Records on the current page |
 
 **AccountResponse Key Fields:**
 
@@ -183,4 +196,4 @@ for (const coin of coins) {
 
 - `accountKey` is the permanent, immutable identifier for a wallet -- store it after creation.
 - Web3 wallets (`accountType = WEB3_ACCOUNT`) use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

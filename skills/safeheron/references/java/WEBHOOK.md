@@ -226,18 +226,45 @@ public class WebhookController {
 
 ## Re-push API
 
-If your server missed events or returned non-200, you can request re-delivery:
+Two methods for recovering missed webhook events:
+
+### `resendWebhook` — Re-push latest event for one transaction
+
+Re-pushes only the **most recent** webhook event for a given transaction (not full history).
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `category` | String | Yes | `TRANSACTION` / `MPC_SIGN` / `WEB3_SIGN` |
+| `txKey` | String | Yes | Transaction key |
 
 ```java
-// Re-push events for a specific transaction
 WebhookApiService webhookApi = ServiceCreator.create(WebhookApiService.class, config);
-// POST /v1/webhook/resend
 
-// Retry all previously failed webhook events
-// POST /v1/webhook/resend/failed
+ResendWebhookRequest resendReq = new ResendWebhookRequest();
+resendReq.setCategory("TRANSACTION");
+resendReq.setTxKey("your-tx-key");
+ServiceExecutor.execute(webhookApi.resendWebhook(resendReq));
 ```
 
-Safeheron retry schedule on non-200 response:
+### `resendFailed` — Re-push all failed events in a time range
+
+Re-pushes every failed webhook event within a time window (max 1 hour). Rate-limited to once every 10 minutes.
+
+> **Warning:** Your handler must be idempotent. `resendFailed` may re-deliver intermediate-status events (e.g. `CONFIRMING`) even if you already received a terminal status (`COMPLETED`). Never roll back a terminal state.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `startTime` | Long (ms) | Yes | Start of time range |
+| `endTime` | Long (ms) | Yes | End of time range (max interval: 1 hour) |
+
+```java
+ResendFailedRequest failedReq = new ResendFailedRequest();
+failedReq.setStartTime(System.currentTimeMillis() - 3600000L);
+failedReq.setEndTime(System.currentTimeMillis());
+MessagesCountResponse result = ServiceExecutor.execute(webhookApi.resendFailed(failedReq));
+```
+
+Safeheron automatic retry schedule on non-200 response:
 `30s → 1m → 5m → 1h → 12h → 24h` (7 total attempts, then stops)
 
 ---
@@ -319,7 +346,7 @@ Webhook events may arrive out of order due to Safeheron's async retry mechanism.
 ```java
 private boolean shouldUpdateStatus(String currentStatus, String newStatus) {
     // Terminal statuses are final — never overwrite them
-    Set<String> terminalStatuses = Set.of("COMPLETED", "SUCCESS", "FAILED", "REJECTED", "CANCELLED");
+    Set<String> terminalStatuses = Set.of("COMPLETED", "SIGN_COMPLETED", "FAILED", "REJECTED", "CANCELLED");
     if (terminalStatuses.contains(currentStatus)) {
         return false;  // already in terminal state — ignore late events
     }

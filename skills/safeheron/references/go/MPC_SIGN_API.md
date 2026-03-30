@@ -66,8 +66,8 @@ func retrieveSig(mpcSignApi api.MpcSignApi, customerRefId string) string {
         fmt.Printf("MPC sign status: %s, sub: %s\n",
             resp.TransactionStatus, resp.TransactionSubStatus)
 
-        if resp.TransactionStatus == "FAILED" || resp.TransactionStatus == "REJECTED" {
-            panic("MPC sign task was FAILED or REJECTED")
+        if resp.TransactionStatus == "FAILED" || resp.TransactionStatus == "REJECTED" || resp.TransactionStatus == "CANCELLED" {
+            panic("MPC sign task was FAILED, REJECTED, or CANCELLED")
         }
 
         if resp.TransactionStatus == "COMPLETED" && resp.TransactionSubStatus == "CONFIRMED" {
@@ -207,6 +207,67 @@ fmt.Printf("Transaction successful with hash: %s\n", signedTx.Hash().Hex())
 |-------|-------|----------|
 | `"Secp256k1"` | secp256k1 | Ethereum, Bitcoin, BSC, Polygon |
 | `"Ed25519"` | Ed25519 | Solana, Near, Aptos |
+
+---
+
+## MPC Sign Status Reference
+
+| Status | Type | Description |
+|--------|------|-------------|
+| `SUBMITTED` | Initial | Task submitted and accepted by Safeheron |
+| `SIGNING` | In-progress | MPC signing in progress after approval |
+| `COMPLETED` | Final | Signature successfully completed |
+| `FAILED` | Final | Task will no longer be processed |
+| `REJECTED` | Final | Rejected by team member's approval |
+| `CANCELLED` | Final | Cancelled by team member or system |
+
+```
+SUBMITTED -> SIGNING -> COMPLETED
+                     |-- FAILED
+                     |-- REJECTED
+                     |-- CANCELLED
+```
+
+---
+
+## List MPC Sign Transactions
+
+Query MPC sign records by time range with cursor-based pagination.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `Direct` | string | No | Page direction: `NEXT` (default) / `PREV` |
+| `Limit` | int32 | No | Items per page, max 500 |
+| `FromId` | string | No | Cursor: omit on first page; pass the `TxKey` of the last item from the previous page |
+| `CreateTimeMin` | int64 (ms) | No | Start of creation time range (default: `CreateTimeMax` minus 24 hours) |
+| `CreateTimeMax` | int64 (ms) | No | End of creation time range (default: current UTC time) |
+
+```go
+mpcSignApi := api.MpcSignApi{Client: sc}
+
+req := api.ListMPCSignTransactionsRequest{
+    Limit:         50,
+    CreateTimeMin: time.Now().UnixMilli() - 86400000, // last 24h
+}
+var list []api.MPCSignTransactionsResponse
+err := mpcSignApi.ListMPCSignTransactions(req, &list)
+if err != nil {
+    log.Fatal(err)
+}
+for _, tx := range list {
+    fmt.Println(tx.TxKey, tx.TransactionStatus)
+    for _, item := range tx.DataList {
+        fmt.Println("  sig:", item.Sig)
+    }
+}
+
+// Next page: pass TxKey of the last item as FromId
+if len(list) > 0 {
+    req.FromId = list[len(list)-1].TxKey
+    var nextPage []api.MPCSignTransactionsResponse
+    err = mpcSignApi.ListMPCSignTransactions(req, &nextPage)
+}
+```
 
 ---
 

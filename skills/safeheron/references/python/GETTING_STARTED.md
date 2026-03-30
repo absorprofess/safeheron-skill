@@ -277,4 +277,5 @@ Total wallets: 1
 | Auto-approve transactions | [COSIGNER.md](COSIGNER.md) |
 | MPC raw signing | [MPC_SIGN_API.md](MPC_SIGN_API.md) |
 | Web3 wallet signing | [WEB3_API.md](WEB3_API.md) |
+| Authentication details | [AUTH.md](../AUTH.md) |
 | Error codes & troubleshooting | [ERROR_CODES.md](ERROR_CODES.md) |

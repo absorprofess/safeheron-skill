@@ -116,7 +116,7 @@ async function pollTransactions(lastPolledTimestampMs: number) {
   const txList = await transactionApi.listTransactionsV2({
     limit: 50,
     createTimeMin: lastPolledTimestampMs,
-    transactionStatus: 'SUCCESS',
+    transactionStatus: 'COMPLETED',
   });
 
   for (const tx of txList) {

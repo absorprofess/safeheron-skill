@@ -38,7 +38,11 @@ List<CreateAccountResponse.CoinAddress> coins = resp.getCoinAddressList();
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `accountName` | Yes | String | Wallet display name |
+| `customerRefId` | No | String | Merchant unique business ID (max 100 chars). Duplicate submissions with the same ID return the same wallet |
 | `hiddenOnUI` | No | Boolean | If true, wallet is hidden in Web Console / App |
+| `autoFuel` | No | Boolean | If true, Gas Station auto-tops up gas when a transaction is initiated. Default: false |
+| `accountTag` | No | String | Tag applied at creation. Values: `DEPOSIT`, `NONE`. Required for Auto-Sweep |
+| `coinKeyList` | No | List\<String\> | Coin keys to add at creation (max 20) |
 
 **CreateAccountResponse Fields:**
 
@@ -72,6 +76,15 @@ for (AccountResponse acct : accounts) {
 |-------|----------|------|-------------|
 | `pageSize` | No | Long | Items per page (default 10) |
 | `pageNumber` | No | Long | Page number, 1-indexed |
+
+**PageResult Key Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pageNumber` | Long | Current page number (1-indexed) |
+| `pageSize` | Long | Number of items per page |
+| `totalElements` | Long | Total number of records across all pages |
+| `content` | `List<T>` | Records on the current page |
 
 **AccountResponse Key Fields:**
 
@@ -220,7 +233,7 @@ for (AccountCoinResponse coin : coins) {
 | Create account | `CreateAccountRequest` | `CreateAccountResponse` |
 | List accounts | `ListAccountRequest` | `PageResult<AccountResponse>` |
 | Get one account | `OneAccountRequest` | `AccountResponse` |
-| Update account | `UpdateAccountRequest` | *(void / ResultResponse)* |
+| Change display in Console/App | `UpdateAccountShowStateRequest` | *(void / ResultResponse)* |
 | Add coin V2 | `CreateAccountCoinV2Request` | `CreateAccountCoinV2Response` |
 | Add coin V1 | `CreateAccountCoinRequest` | `List<CreateAccountCoinResponse>` |
 | List coins | `ListAccountCoinRequest` | `List<AccountCoinResponse>` |
@@ -232,4 +245,4 @@ for (AccountCoinResponse coin : coins) {
 - `pageSize` and `pageNumber` fields are **Long** type, not int.
 - `accountKey` is the permanent, immutable identifier for a wallet — store it after creation.
 - Web3 wallets (`accountType = WEB3_ACCOUNT`) use a separate set of APIs — see [WEB3_API.md](WEB3_API.md).
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

@@ -113,7 +113,7 @@ transaction_api = TransactionApi(config)
 param = ListTransactionsV2Request()
 param.limit = 50
 param.createTimeMin = last_polled_timestamp_ms
-param.transactionStatus = "SUCCESS"
+param.transactionStatus = "COMPLETED"
 
 tx_list = transaction_api.list_transactions_v2(param)
 for tx in tx_list:

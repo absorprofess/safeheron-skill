@@ -22,7 +22,8 @@ accountApi := api.AccountApi{Client: sc}
 ```go
 req := api.CreateAccountRequest{
     AccountName: "my-wallet-account",
-    HiddenOnUI:  false, // true = API-only wallet, hidden in Console
+    // HiddenOnUI is *bool; to set it, use a pointer:
+    //   hidden := true; req.HiddenOnUI = &hidden
 }
 
 var resp api.CreateAccountResponse
@@ -37,7 +38,11 @@ accountKey := resp.AccountKey // save this -- permanent wallet identifier
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `AccountName` | Yes | `string` | Wallet display name |
-| `HiddenOnUI` | No | `bool` | If true, wallet is hidden in Web Console / App |
+| `CustomerRefId` | No | `string` | Merchant unique business ID (max 100 chars). Duplicate submissions with the same ID return the same wallet |
+| `HiddenOnUI` | No | `*bool` | If true, wallet is hidden in Web Console / App |
+| `AutoFuel` | No | `*bool` | If true, Gas Station auto-tops up gas when a transaction is initiated. Default: false |
+| `AccountTag` | No | `string` | Tag applied at creation. Values: `DEPOSIT`, `NONE`. Required for Auto-Sweep |
+| `CoinKeyList` | No | `[]string` | Coin keys to add at creation (max 20) |
 
 **CreateAccountResponse Fields:**
 
@@ -73,6 +78,15 @@ for _, acct := range res.Content {
 |-------|----------|------|-------------|
 | `PageSize` | No | `int` | Items per page (default 10) |
 | `PageNumber` | No | `int` | Page number, 1-indexed |
+
+**ListAccountResponse Key Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `PageNumber` | `int32` | Current page number (1-indexed) |
+| `PageSize` | `int32` | Number of items per page |
+| `TotalElements` | `int64` | Total number of records across all pages |
+| `Content` | `[]AccountResponse` | Records on the current page |
 
 **AccountResponse Key Fields:**
 
@@ -132,7 +146,7 @@ if err := accountApi.BatchUpdateAccountTag(req, &resp); err != nil {
 ```go
 req := api.AddCoinRequest{
     AccountKey: accountKey,
-    CoinKey:    "ETH_GOERLI",
+    CoinKey:    "ETH(SEPOLIA)_ETHEREUM_SEPOLIA",
 }
 
 var resp api.AddCoinResponse
@@ -174,4 +188,4 @@ for _, coin := range coins {
 - `PageSize` and `PageNumber` are `int` type in Go (not `Long` like Java).
 - `accountKey` is the permanent, immutable identifier for a wallet -- store it after creation.
 - Web3 wallets (`AccountType = "WEB3_ACCOUNT"`) use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

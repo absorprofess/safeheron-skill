@@ -163,8 +163,11 @@ const signedTx = result.transaction.sig.sig;  // hex-encoded signature
 ## Convert Signature and Broadcast (ethSign Example)
 
 ```typescript
-import { utils } from 'ethers';
+import { providers, utils } from 'ethers';
 import { splitSignature } from '@ethersproject/bytes';
+
+// provider must be an ethers JsonRpcProvider (or InfuraProvider, AlchemyProvider, etc.)
+const provider = new providers.JsonRpcProvider(process.env.RPC_URL);
 
 function convertSig(sig: string) {
   const r = sig.substring(0, 64);
@@ -180,8 +183,8 @@ function convertSig(sig: string) {
 // Serialize transaction with signature and broadcast
 const signature = convertSig(sig);
 const rawTransaction = utils.serializeTransaction(tx, signature);
-const response = await web3.eth.sendSignedTransaction(rawTransaction);
-console.log(`Transaction hash: ${response.transactionHash}`);
+const response = await provider.sendTransaction(rawTransaction);
+console.log(`Transaction hash: ${response.hash}`);
 ```
 
 ---
@@ -199,7 +202,7 @@ await web3Api.cancelWeb3Sign({ txKey });
 ```typescript
 const list = await web3Api.listWeb3Sign({
   limit: 20,
-  // Optional: transactionStatus: ['SUCCESS'],
+  // Optional: transactionStatus: ['SIGN_COMPLETED'],
   // Optional: subjectType: 'PERSONAL_SIGN',
 });
 ```
@@ -213,7 +216,7 @@ const list = await web3Api.listWeb3Sign({
 | `txKey` | string | Safeheron sign request key |
 | `accountKey` | string | Web3 wallet account key |
 | `sourceAddress` | string | Signing address |
-| `transactionStatus` | string | `SUBMITTED`, `WAIT_AUDIT`, `WAIT_SIGN`, `SIGN_COMPLETED`, `FAILED`, `REJECTED` |
+| `transactionStatus` | string | `SUBMITTED`, `SIGNING`, `SIGN_COMPLETED`, `FAILED`, `REJECTED`, `CANCELLED` |
 | `transactionSubStatus` | string | Detailed sub-status |
 | `subjectType` | string | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
 | `customerRefId` | string | Your reference ID |
@@ -226,8 +229,8 @@ const list = await web3Api.listWeb3Sign({
 ## Web3 Sign Status Flow
 
 ```
-SUBMITTED -> WAIT_AUDIT -> WAIT_SIGN -> SIGN_COMPLETED
-                                      |-- FAILED | REJECTED
+SUBMITTED -> SIGNING -> SIGN_COMPLETED
+                      |-- FAILED | REJECTED | CANCELLED
 ```
 
 ---

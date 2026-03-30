@@ -181,6 +181,62 @@ String ethTxHash = web3j.ethSendRawTransaction(Numeric.toHexString(signedMessage
 
 ---
 
+## MPC Sign Status Reference
+
+| Status | Type | Description |
+|--------|------|-------------|
+| `SUBMITTED` | Initial | Task submitted and accepted by Safeheron |
+| `SIGNING` | In-progress | MPC signing in progress after approval |
+| `COMPLETED` | Final | Signature successfully completed |
+| `FAILED` | Final | Task will no longer be processed |
+| `REJECTED` | Final | Rejected by team member's approval |
+| `CANCELLED` | Final | Cancelled by team member or system |
+
+```
+SUBMITTED -> SIGNING -> COMPLETED
+                     |-- FAILED
+                     |-- REJECTED
+                     |-- CANCELLED
+```
+
+---
+
+## List MPC Sign Transactions
+
+Query MPC sign records by time range with cursor-based pagination.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `direct` | String | No | Page direction: `NEXT` (default) / `PREV` |
+| `limit` | Long | No | Items per page, max 500 |
+| `fromId` | String | No | Cursor: omit on first page; pass the `txKey` of the last item from the previous page |
+| `createTimeMin` | Long (ms) | No | Start of creation time range (default: `createTimeMax` minus 24 hours) |
+| `createTimeMax` | Long (ms) | No | End of creation time range (default: current UTC time) |
+
+```java
+MPCSignApiService mpcSignApi = ServiceCreator.create(MPCSignApiService.class, config);
+
+ListMPCSignTransactionsRequest req = new ListMPCSignTransactionsRequest();
+req.setLimit(50L);
+req.setCreateTimeMin(System.currentTimeMillis() - 86400000L); // last 24h
+
+List<MPCSignTransactionsResponse> list = ServiceExecutor.execute(mpcSignApi.listMPCSignTransactions(req));
+for (MPCSignTransactionsResponse tx : list) {
+    System.out.println(tx.getTxKey() + " " + tx.getTransactionStatus());
+    for (MPCSignTransactionsResponse.Date item : tx.getDataList()) {
+        System.out.println("  sig: " + item.getSig());
+    }
+}
+
+// Next page: pass txKey of the last item as fromId
+if (!list.isEmpty()) {
+    req.setFromId(list.get(list.size() - 1).getTxKey());
+    List<MPCSignTransactionsResponse> nextPage = ServiceExecutor.execute(mpcSignApi.listMPCSignTransactions(req));
+}
+```
+
+---
+
 ## Best Practices
 
 - The MPCSign policy is also required before use — contact Safeheron Support to enable.

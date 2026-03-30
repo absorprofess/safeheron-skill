@@ -114,7 +114,7 @@ Poll the transaction list periodically to catch any missed webhooks:
 ListTransactionsV2Request req = new ListTransactionsV2Request();
 req.setLimit(50L);
 req.setCreateTimeMin(lastPolledTimestampMs);
-req.setTransactionStatus("SUCCESS");   // or omit to get all statuses
+req.setTransactionStatus("COMPLETED");   // or omit to get all statuses
 
 List<TransactionsResponse> txList = ServiceExecutor.execute(
         transactionApi.listTransactionsV2(req));

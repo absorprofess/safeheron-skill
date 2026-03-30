@@ -51,10 +51,10 @@ One-time address (`ONE_TIME_ADDRESS`) must only be used for genuinely temporary,
 
 ```java
 // CORRECT: use whitelist address type for recurring/formal transfers
-req.setTransferAddressType(TransferAddressType.WHITELIST_ADDRESS);
+req.setDestinationAccountType("WHITELISTING_ACCOUNT");
 
 // ONE_TIME_ADDRESS: ONLY for a single-use, temporary payment that will never recur
-// req.setTransferAddressType(TransferAddressType.ONE_TIME_ADDRESS);
+// req.setDestinationAccountType("ONE_TIME_ADDRESS");
 ```
 
 **2-3. AML check is mandatory before every transfer.**
@@ -62,12 +62,19 @@ Call `ToolsApiService` to screen the destination address. Intercept or alert on 
 
 ```java
 // Required before creating any outbound transaction
+// Step 1: Submit AML check request
 ToolsApiService toolsApi = ServiceCreator.create(ToolsApiService.class, config);
-AmlScreenRequest amlReq = new AmlScreenRequest();
+AmlCheckerRequestRequest amlReq = new AmlCheckerRequestRequest();
+amlReq.setNetwork("Ethereum");   // "Bitcoin" | "Ethereum" | "Tron"
 amlReq.setAddress(destinationAddress);
-amlReq.setCoin("ETH");
-AmlScreenResponse amlResp = ServiceExecutor.execute(toolsApi.amlScreen(amlReq));
-if (amlResp.isHighRisk()) {
+AmlCheckerRequestResponse amlRequestResp = ServiceExecutor.execute(toolsApi.amlCheckerRequest(amlReq));
+String requestId = amlRequestResp.getRequestId();
+
+// Step 2: Retrieve result (poll until status is ready)
+AmlCheckerRetrievesRequest retrievesReq = new AmlCheckerRetrievesRequest();
+retrievesReq.setRequestId(requestId);
+AmlCheckerRetrievesResponse amlResp = ServiceExecutor.execute(toolsApi.amlCheckerRetrieves(retrievesReq));
+if (Boolean.TRUE.equals(amlResp.getIsMaliciousAddress())) {
     throw new SecurityException("AML check failed for address: " + destinationAddress);
 }
 ```
@@ -209,7 +216,7 @@ void processWebhookEvent(WebhookEvent event) {
 
 private boolean isTerminalStatus(String status) {
     return status != null &&
-           (status.equals("COMPLETED") || status.equals("FAILED") || status.equals("REJECTED") || status.equals("CANCELLED"));
+           (status.equals("COMPLETED") || status.equals("SIGN_COMPLETED") || status.equals("FAILED") || status.equals("REJECTED") || status.equals("CANCELLED"));
 }
 ```
 

@@ -77,7 +77,7 @@ Algorithm: AES/GCM/NoPadding
 → Yields plaintext JSON response
 ```
 
-> The Java SDK handles all of the above automatically via `ServiceCreator` + `ServiceExecutor`.
+> All four SDKs (Java, JS/TS, Go, Python) automatically handle request signing, payload encryption, and response signature verification — these steps are built-in and non-optional. Manual implementation is only needed if you are calling the API directly without an SDK.
 
 ---
 
@@ -93,10 +93,3 @@ openssl rsa -in api_private.pem -out api_public.pem -pubout
 openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in api_private.pem -out api_pkcs8.pem
 ```
 
----
-
-## Security Checklist
-- [ ] RSA private key stored securely (secret manager, never in source code)
-- [ ] Server IP registered in Safeheron Console whitelist
-- [ ] Always verify response `sig` before trusting `bizContent`
-- [ ] Use HTTPS only (`https://api.safeheron.vip`)

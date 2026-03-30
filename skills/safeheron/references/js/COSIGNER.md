@@ -12,11 +12,11 @@ When a transaction requires approval, Safeheron calls your **Approval Callback S
 
 ```
 1. Client creates transaction / MPC sign / Web3 sign
-2. Safeheron: transaction enters WAIT_AUDIT status
+2. Safeheron: transaction enters SUBMITTED status
 3. API Co-Signer polls Safeheron (every 5s in v2.x, every 1s in v1.x)
 4. API Co-Signer calls your Approval Callback Service (HTTP POST)
 5. Your service returns APPROVE or REJECT
-6. Transaction proceeds (WAIT_SIGN) or is REJECTED
+6. Transaction proceeds to SIGNING or is REJECTED
 ```
 
 **Approval Callback timeout:** Response timestamp must be within **5 seconds** of the API Co-Signer server's current time.
@@ -49,7 +49,7 @@ const cosignerConfig: SafeheronCoSignerConfig = {
 
 const converter = new CoSignerConverter(cosignerConfig);
 
-app.post('/cosigner/callback', (req, res) => {
+app.post('/cosigner/callback', async (req, res) => {
   try {
     // 1. Decrypt and verify signature
     //    requestV3convert() handles:
@@ -60,7 +60,7 @@ app.post('/cosigner/callback', (req, res) => {
     const payload = JSON.parse(decrypted);
 
     // 2. Business validation
-    const action = evaluateTransaction(payload);
+    const action = await evaluateTransaction(payload);
 
     // 3. Encrypt response
     const encryptedResponse = converter.responseV3convert({
@@ -246,7 +246,7 @@ sudo ./cosigner export-public-key   # Export Co-Signer identity public key
 |-------|-------|------------|
 | `Illegal IP` in logs | Co-Signer host IP not in API Key whitelist | Add IP to whitelist in Console, restart Co-Signer |
 | `The final private key fragment is not exists` | Co-Signer not yet activated | Normal -- proceed with activation workflow |
-| Transaction stays in `WAIT_AUDIT` | Co-Signer not running or not polling | Check `./cosigner logs -f` for errors |
+| Transaction stays in `SUBMITTED` | Co-Signer not running or not polling | Check `./cosigner logs -f` for errors |
 | `Timestamp out of range` | Server clock skew > 5s | Sync Co-Signer server time with NTP |
 | Docker login failure | Token expired or firewall blocks `registry.gitlab.com` | Re-download CLI from Console; check firewall rules |
 

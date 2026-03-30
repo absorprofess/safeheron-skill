@@ -111,7 +111,7 @@ func pollTransactions(transactionApi api.TransactionApi, lastPolledMs int64) {
     req := api.ListTransactionsV2Request{
         Limit:             50,
         CreateTimeMin:     lastPolledMs,
-        TransactionStatus: "SUCCESS",
+        TransactionStatus: "COMPLETED",
     }
 
     var txList []api.TransactionsResponse

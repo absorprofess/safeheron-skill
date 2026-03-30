@@ -176,7 +176,7 @@ hashItem.setData(hash.substring(2)); // ✓ (when hash is "0x...")
 
 ## Nonce Issues (EVM Chains)
 
-Nonce is assigned when a transaction is **approved** (enters WAIT_SIGN):
+Nonce is assigned when a transaction is **approved** (enters SIGNING):
 1. If `maxUseNonce` is null, only `chainNonce` is used.
 2. `nonce < chainNonce` → error "Nonce too low".
 3. `nonce > maxUseNonce + 1` → error "Nonce cannot exceed maxUseNonce+1".

@@ -177,7 +177,7 @@ Safeheron retries delivery up to 7 times. The handler must safely process duplic
 **4-5. No status rollback -- terminal states are final.**
 
 ```python
-TERMINAL_STATUSES = {'COMPLETED', 'SUCCESS', 'FAILED', 'REJECTED', 'CANCELLED'}
+TERMINAL_STATUSES = {'COMPLETED', 'SIGN_COMPLETED', 'FAILED', 'REJECTED', 'CANCELLED'}
 
 def is_terminal_status(status):
     return status in TERMINAL_STATUSES

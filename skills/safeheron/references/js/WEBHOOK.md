@@ -177,27 +177,48 @@ app.post('/safeheron/webhook', (req, res) => {
 
 ## Re-push API
 
-If your server missed events or returned non-200, you can request re-delivery:
+Two methods for recovering missed webhook events:
+
+### `resendWebhook` — Re-push latest event for one transaction
+
+Re-pushes only the **most recent** webhook event for a given transaction (not full history).
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `category` | string | No | `TRANSACTION` / `MPC_SIGN` / `WEB3_SIGN` |
+| `txKey` | string | No | Transaction key |
 
 ```typescript
 import { WebhookApi } from '@safeheron/api-sdk';
 
 const webhookApi = new WebhookApi(config);
 
-// Re-push events for a specific transaction
 await webhookApi.resendWebhook({
   category: 'TRANSACTION',
   txKey: 'your-tx-key',
 });
-
-// Retry all previously failed webhook events within a time range
-await webhookApi.resendFailedWebhook({
-  startTime: Date.now() - 3600000,  // 1 hour ago
-  endTime: Date.now(),
-});
 ```
 
-Safeheron retry schedule on non-200 response:
+### `resendFailed` — Re-push all failed events in a time range
+
+Re-pushes every failed webhook event within a time window (max 1 hour). Rate-limited to once every 10 minutes.
+
+> **Warning:** Your handler must be idempotent. `resendFailed` may re-deliver intermediate-status events (e.g. `CONFIRMING`) even if you already received a terminal status (`COMPLETED`). Never roll back a terminal state.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `startTime` | number (ms) | Yes | Start of time range |
+| `endTime` | number (ms) | Yes | End of time range (max interval: 1 hour) |
+
+```typescript
+const result = await webhookApi.resendFailed({
+  startTime: Date.now() - 3600000,
+  endTime: Date.now(),
+});
+// result.messagesCount: number of events triggered
+```
+
+Safeheron automatic retry schedule on non-200 response:
 `30s -> 1m -> 5m -> 1h -> 12h -> 24h` (7 total attempts, then stops)
 
 ---
@@ -234,7 +255,7 @@ Webhook events may arrive out of order. Your handler **must never downgrade a st
 
 ```typescript
 function shouldUpdateStatus(currentStatus: string, newStatus: string): boolean {
-  const terminalStatuses = new Set(['COMPLETED', 'SUCCESS', 'FAILED', 'REJECTED', 'CANCELLED']);
+  const terminalStatuses = new Set(['COMPLETED', 'SIGN_COMPLETED', 'FAILED', 'REJECTED', 'CANCELLED']);
   if (terminalStatuses.has(currentStatus)) {
     return false;  // already in terminal state -- ignore late events
   }

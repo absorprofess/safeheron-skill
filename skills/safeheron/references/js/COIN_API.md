@@ -42,18 +42,25 @@ for (const coin of coins) {
 | `coinKey` | string | Unique coin identifier (e.g. `ETHEREUM_ETH`, `BITCOIN_BTC`) |
 | `coinFullName` | string | Full name (e.g. "Ethereum") |
 | `coinName` | string | Symbol (e.g. "ETH") |
+| `symbol` | string | Coin unit display name |
 | `coinDecimal` | string | Decimal places |
+| `showCoinDecimal` | string | Displayed decimal places on Console |
+| `coinType` | string | Coin type classification |
 | `feeCoinKey` | string | Coin used for gas fees |
 | `feeUnit` | string | Fee unit name (Gwei, satoshis) |
 | `feeDecimal` | string | Fee decimal |
+| `gasLimit` | string | Default gas limit |
 | `blockChain` | string | Blockchain name |
+| `blockchainType` | string | EVM, UTXO, etc. |
 | `network` | string | Mainnet / Testnet |
 | `tokenIdentifier` | string | Contract address or NATIVE |
 | `minTransferAmount` | string | Minimum transfer amount |
-| `gasLimit` | string | Default gas limit |
+| `isMultipleAddress` | string | YES/NO -- supports multiple address groups |
 | `isUtxo` | string | YES/NO -- UTXO-based chain |
 | `isMemo` | string | YES/NO -- Requires memo/tag |
-| `blockchainType` | string | EVM, UTXO, etc. |
+| `txRefUrl` | string | Block explorer TX URL template |
+| `addressRefUrl` | string | Block explorer address URL |
+| `logoUrl` | string | Coin logo URL |
 
 ---
 
@@ -139,7 +146,7 @@ Supports adding up to 20 coins in a single call. Adding a token automatically ad
 ```typescript
 const res = await accountApi.createAccountCoinV2({
   accountKey: 'your-account-key',
-  coinKeyList: ['USDT(ERC20)_ETHEREUM_USDT', 'ETH_SEPOLIA'],
+  coinKeyList: ['USDT(ERC20)_ETHEREUM_USDT', 'ETH(SEPOLIA)_ETHEREUM_SEPOLIA'],
 });
 
 for (const coin of res.coinAddressList) {
@@ -179,7 +186,7 @@ for (const coin of coins) {
 
 | Network | coinKey Example | Notes |
 |---------|----------------|-------|
-| Ethereum Sepolia | `ETH_SEPOLIA` | Test faucet tokens available |
+| Ethereum Sepolia | `ETH(SEPOLIA)_ETHEREUM_SEPOLIA` | Test faucet tokens available |
 | Bitcoin Testnet | `BITCOIN_BTC_TESTNET` | Faucet: https://coinfaucet.eu/en/btc-testnet4/ |
 | TRON Shasta | TRON testnet coinKey | TLK token available on Shasta |
 
@@ -191,6 +198,6 @@ Test token contracts (Ethereum Sepolia):
 
 ## Best Practices
 
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`, `TRON_TRX`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`, `TRON_TRX`.
 - Always validate addresses with `checkCoinAddress` before sending funds or adding to whitelist.
 - Team-level balance: use `coinBalanceSnapshot`. Per-account balance: use `listAccountCoin`.

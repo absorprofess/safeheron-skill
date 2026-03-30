@@ -48,16 +48,25 @@ for _, coin := range coins {
 | `CoinKey` | `string` | Unique coin identifier (e.g. `ETHEREUM_ETH`, `BITCOIN_BTC`) |
 | `CoinFullName` | `string` | Full name (e.g. "Ethereum") |
 | `CoinName` | `string` | Symbol (e.g. "ETH") |
-| `CoinDecimal` | `string` | Decimal places |
+| `Symbol` | `string` | Coin unit display name |
+| `CoinDecimal` | `int32` | Decimal places |
+| `ShowCoinDecimal` | `int32` | Displayed decimal places on Console |
+| `CoinType` | `string` | Coin type classification |
 | `FeeCoinKey` | `string` | Coin used for gas fees |
 | `FeeUnit` | `string` | Fee unit name (Gwei, satoshis) |
-| `FeeDecimal` | `string` | Fee decimal |
+| `FeeDecimal` | `int32` | Fee decimal |
+| `GasLimit` | `int32` | Default gas limit |
 | `BlockChain` | `string` | Blockchain name |
+| `BlockchainType` | `string` | EVM, UTXO, etc. |
 | `Network` | `string` | Mainnet / Testnet |
 | `TokenIdentifier` | `string` | Contract address or NATIVE |
 | `MinTransferAmount` | `string` | Minimum transfer amount |
+| `IsMultipleAddress` | `string` | YES/NO -- supports multiple address groups |
 | `IsUtxo` | `string` | YES/NO -- UTXO-based chain |
 | `IsMemo` | `string` | YES/NO -- Requires memo/tag |
+| `TxRefUrl` | `string` | Block explorer TX URL template |
+| `AddressRefUrl` | `string` | Block explorer address URL |
+| `LogoUrl` | `string` | Coin logo URL |
 
 ---
 
@@ -95,7 +104,7 @@ req := api.CoinBalanceSnapshotRequest{
     Gmt8Date: "2026-01-01",
 }
 
-var result []api.CoinBalanceSnapshotResponse
+var result api.CoinBalanceSnapshotResponse
 if err := coinApi.CoinBalanceSnapshot(req, &result); err != nil {
     panic(fmt.Errorf("failed to get balance snapshot: %w", err))
 }
@@ -114,7 +123,7 @@ req := api.CoinBlockHeightRequest{
     CoinKey: "ETHEREUM_ETH",
 }
 
-var result []api.CoinBlockHeightResponse
+var result api.CoinBlockHeightResponse
 if err := coinApi.CoinBlockHeight(req, &result); err != nil {
     panic(fmt.Errorf("failed to get block height: %w", err))
 }
@@ -133,7 +142,7 @@ for _, item := range result {
 ```go
 req := api.AddCoinRequest{
     AccountKey: "your-account-key",
-    CoinKey:    "ETH_GOERLI",
+    CoinKey:    "ETH(SEPOLIA)_ETHEREUM_SEPOLIA",
 }
 
 var resp api.AddCoinResponse
@@ -157,7 +166,7 @@ req := api.ListAccountCoinRequest{
     AccountKey: "your-account-key",
 }
 
-var coins []api.AccountCoinResponse
+var coins api.AccountCoinResponse
 if err := accountApi.ListAccountCoin(req, &coins); err != nil {
     panic(fmt.Errorf("failed to list coins: %w", err))
 }
@@ -181,7 +190,7 @@ for _, coin := range coins {
 
 | Network | coinKey Example | Notes |
 |---------|----------------|-------|
-| Ethereum Sepolia | `ETH_SEPOLIA` | Test faucet tokens available |
+| Ethereum Sepolia | `ETH(SEPOLIA)_ETHEREUM_SEPOLIA` | Test faucet tokens available |
 | Bitcoin Testnet | `BITCOIN_BTC_TESTNET` | Faucet: https://coinfaucet.eu/en/btc-testnet4/ |
 | TRON Shasta | TRON testnet coinKey | TLK token available on Shasta |
 
@@ -193,6 +202,6 @@ Test token contracts (Ethereum Sepolia):
 
 ## Best Practices
 
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`, `TRON_TRX`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`, `TRON_TRX`.
 - Always validate addresses with `CheckCoinAddress` before sending funds or adding to whitelist.
 - Team-level balance: use `CoinBalanceSnapshot`. Per-account balance: use `ListAccountCoin`.

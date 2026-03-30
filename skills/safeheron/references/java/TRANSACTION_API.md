@@ -134,7 +134,7 @@ System.out.println("TxHash: " + resp.getTxHash());
 ```java
 ListTransactionsV2Request req = new ListTransactionsV2Request();
 req.setLimit(20L);
-req.setTransactionStatus("SUCCESS");  // optional filter
+req.setTransactionStatus("COMPLETED");  // optional filter
 req.setCoinKey("ETHEREUM_ETH");       // optional filter
 // req.setCreateTimeMin(startMs);     // optional timestamp filter
 // req.setCreateTimeMax(endMs);
@@ -246,7 +246,7 @@ ServiceExecutor.execute(transactionApi.cancelTransactions(req));
 | `txKey` | String | Transaction key |
 | `txType` | String | Transaction type, `TRANSACTION` by default |
 
-> Only transactions in `WAIT_AUDIT` or `WAIT_SIGN` status can be cancelled.
+> Only transactions in `SUBMITTED` or `SIGNING` status can be cancelled.
 
 ---
 
@@ -294,11 +294,11 @@ ApprovalDetailTransactionsResponse resp = ServiceExecutor.execute(
 | Status | Description |
 |--------|-------------|
 | `SUBMITTED` | Received by Safeheron |
-| `WAIT_AUDIT` | Pending policy / manual approval |
-| `WAIT_SIGN` | Approved, pending MPC signing |
+| `SIGNING` | MPC signing in progress — entered after approval by team members or API Co-Signer |
 | `BROADCASTING` | Submitted to blockchain |
-| `PENDING` | On-chain, awaiting confirmations |
-| `SUCCESS` | Confirmed on-chain |
+| `CONFIRMING` | On-chain, awaiting block confirmations |
+| `COMPLETED` | Confirmed on-chain — assets successfully transferred |
+| `CANCELLED` | Final state — transaction cancelled by team member or system |
 | `FAILED` | Transaction failed |
 | `REJECTED` | Rejected by approver |
 
@@ -306,15 +306,15 @@ ApprovalDetailTransactionsResponse resp = ServiceExecutor.execute(
 
 ```
 SUBMITTED
-    → WAIT_AUDIT
-    → WAIT_SIGN
+    → SIGNING
     → BROADCASTING
-    → PENDING
-    → SUCCESS
+    → CONFIRMING
+    → COMPLETED
     └─ FAILED
 
-    At WAIT_AUDIT or WAIT_SIGN:
+    At SUBMITTED or SIGNING:
     → REJECTED (denied by approver)
+    → CANCELLED (cancelled by team member)
 ```
 
 ### Transaction Direction (source/destination type)
@@ -372,6 +372,6 @@ SUBMITTED
 1. Always set `customerRefId` from your own DB record ID before calling create.
 2. Store the returned `txKey` — it's Safeheron's unique identifier.
 3. Monitor status via **Webhook** (preferred) and call `/v1/transactions/one` periodically to re-request failed deliveries.
-4. Credit/debit accounts only on `SUCCESS` status.
+4. Credit/debit accounts only on `COMPLETED` status.
 5. All amounts are **strings** (e.g. `"0.05"`) — never use float/double.
 6. On timeout, **retry with the same `customerRefId`** — Safeheron returns the original tx (idempotency). Error code `9001` means the refId already exists.

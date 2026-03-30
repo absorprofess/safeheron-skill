@@ -10,7 +10,7 @@ from safeheron_api_sdk_python.api.account_api import (
     OneAccountRequest,
     BatchUpdateAccountTagRequest,
     CreateAccountCoinRequest,
-    CreateAccountCoinV2Request,
+    CreateAccountCoinRequestV2,
     ListAccountCoinRequest,
 )
 ```
@@ -41,7 +41,11 @@ coin_address_list = resp.get('coinAddressList', [])
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `accountName` | Yes | str | Wallet display name |
+| `customerRefId` | No | str | Merchant unique business ID (max 100 chars). Duplicate submissions with the same ID return the same wallet |
 | `hiddenOnUI` | No | bool | If True, wallet is hidden in Web Console / App |
+| `autoFuel` | No | bool | If True, Gas Station auto-tops up gas when a transaction is initiated. Default: False |
+| `accountTag` | No | str | Tag applied at creation. Values: `DEPOSIT`, `NONE`. Required for Auto-Sweep |
+| `coinKeyList` | No | list[str] | Coin keys to add at creation (max 20) |
 
 **Response Fields:**
 
@@ -127,7 +131,7 @@ account_api.batch_update_account_tag(param)
 Add up to 20 coins in a single call. Adding a token auto-adds its mainnet coin.
 
 ```python
-param = CreateAccountCoinV2Request()
+param = CreateAccountCoinRequestV2()
 param.accountKey = account_key
 param.coinKeyList = [
     "ETHEREUM_ETH",
@@ -186,7 +190,7 @@ for coin in coins:
 | List accounts | `ListAccountRequest` | `list_accounts(param)` |
 | Get one account | `OneAccountRequest` | `one_accounts(param)` |
 | Batch update tag | `BatchUpdateAccountTagRequest` | `batch_update_account_tag(param)` |
-| Add coin V2 | `CreateAccountCoinV2Request` | `create_account_coin_v2(param)` |
+| Add coin V2 | `CreateAccountCoinRequestV2` | `create_account_coin_v2(param)` |
 | Add coin V1 | `CreateAccountCoinRequest` | `create_account_coin(param)` |
 | List coins | `ListAccountCoinRequest` | `list_account_coin(param)` |
 
@@ -196,4 +200,4 @@ for coin in coins:
 
 - `accountKey` is the permanent, immutable identifier for a wallet -- store it after creation.
 - Web3 wallets (`accountType = WEB3_ACCOUNT`) use a separate set of APIs -- see [WEB3_API.md](WEB3_API.md).
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.

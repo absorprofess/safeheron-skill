@@ -377,7 +377,7 @@ A:
 
 **Q: Nonce rules for EVM chains**
 
-A: Nonce is determined at **approval time** (when transaction enters WAIT_SIGN):
+A: Nonce is determined at **approval time** (when transaction enters SIGNING):
 1. If `maxUseNonce = null` → only `chainNonce` is used.
 2. `nonce < chainNonce` → error: "Nonce too low".
 3. `nonce > maxUseNonce + 1` → error: "Nonce cannot exceed maxUseNonce+1".
@@ -429,7 +429,7 @@ A: Manual/API sweep: threshold is 30 UTXOs. When UTXO count ≤ 30, sweep is not
 
 **Q: What permissions are required for the following operations?**
 
-A:
+A: The permission names below are the official labels shown in the Safeheron Console UI (Chinese names are displayed regardless of UI language setting):
 
 | Operation | Required Permission |
 |-----------|-------------------|

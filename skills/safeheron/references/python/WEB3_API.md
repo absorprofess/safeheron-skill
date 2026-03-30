@@ -118,7 +118,7 @@ result = None
 for i in range(60):
     result = web3_api.oneWeb3Sign(query_param)
     status = result['transactionStatus']
-    if status in ('SUCCESS', 'FAILED', 'REJECTED', 'CANCELLED'):
+    if status in ('SIGN_COMPLETED', 'FAILED', 'REJECTED', 'CANCELLED'):
         break
     time.sleep(3)
 ```
@@ -127,7 +127,7 @@ for i in range(60):
 
 ## Retrieve Signature from Response
 
-After `SUCCESS`:
+After `SIGN_COMPLETED`:
 
 ```python
 # For ethSign:
@@ -253,7 +253,7 @@ print(f"tx_hash: {on_chain_hash}")
 | `txKey` | str | Safeheron sign request key |
 | `accountKey` | str | Web3 wallet account key |
 | `sourceAddress` | str | Signing address |
-| `transactionStatus` | str | `SUBMITTED`, `WAIT_AUDIT`, `WAIT_SIGN`, `SUCCESS`, `FAILED`, `REJECTED` |
+| `transactionStatus` | str | `SUBMITTED`, `SIGNING`, `SIGN_COMPLETED`, `FAILED`, `REJECTED`, `CANCELLED` |
 | `subjectType` | str | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
 | `customerRefId` | str | Your reference ID |
 
@@ -262,8 +262,8 @@ print(f"tx_hash: {on_chain_hash}")
 ## Web3 Sign Status Flow
 
 ```
-SUBMITTED -> WAIT_AUDIT -> WAIT_SIGN -> SUCCESS
-                                      +-- FAILED | REJECTED
+SUBMITTED -> SIGNING -> SIGN_COMPLETED
+                      +-- FAILED | REJECTED | CANCELLED
 ```
 
 ---

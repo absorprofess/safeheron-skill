@@ -38,9 +38,9 @@ Covers all 5 onboarding steps:
 ### Transfer & Whitelist Security
 - [ ] **`customerRefId` first** — Generate and persist `customerRefId` to your DB **before** calling any Safeheron create API. On timeout, retry with the same ID. Error `9001` = already exists, query instead of recreating.
 - [ ] **Whitelist addresses for formal transfers** — `ONE_TIME_ADDRESS` must only be used for genuinely temporary, one-off payments. All recurring or formal transfers (exchange hot wallets, partner addresses, internal accounts) require a whitelisted address.
-- [ ] **AML check before every transfer** — Call `ToolsApiService` to screen the destination address before creating any outbound transaction. Intercept or alert on high-risk addresses.
-- [ ] **Validate address format** — Call `CoinApiService.checkCoinAddress()` before adding an address to the whitelist or initiating a transfer. Never trust user-supplied address strings directly.
-- [ ] **Amounts: String in API, BigDecimal in code** — Never use `float` or `double` for monetary values. API request fields use `String`; application-side calculations use `BigDecimal`.
+- [ ] **AML check before every transfer** — Call the Tools API to screen the destination address before creating any outbound transaction. Intercept or alert on high-risk addresses.
+- [ ] **Validate address format** — Call the coin address validation endpoint before adding an address to the whitelist or initiating a transfer. Never trust user-supplied address strings directly.
+- [ ] **Amounts: String in API, decimal type in code** — Never use `float` or `double` for monetary values. API request fields use `String`; application-side calculations use an arbitrary-precision decimal type (Java: `BigDecimal`; Python: `Decimal`; JS/TS: keep as `string` or use `decimal.js`; Go: `string` or `shopspring/decimal`).
 - [ ] **`failOnAml: true` by default** — Only disable when the business case is explicitly confirmed.
 - [ ] **`failOnContract: true` by default** — Block contract address destinations unless explicitly required.
 
@@ -92,12 +92,12 @@ Covers all 5 onboarding steps:
 
 | Language | Install |
 |----------|---------|
-| Java | `com.safeheron:api-sdk-java:1.0.9` (Maven) |
-| JS/TS | `npm install safeheron-api-sdk` |
+| Java | `com.safeheron:api-sdk-java:1.0.10` (Maven) |
+| JS/TS | `npm install @safeheron/api-sdk` |
 | Go | `go get github.com/Safeheron/safeheron-api-sdk-go` |
 | Python | `pip install safeheron-api-sdk-python` |
 
-- **SDK Repo**: https://github.com/Safeheron/safeheron-api-sdk-java
+- **SDK Repos**: [Java](https://github.com/Safeheron/safeheron-api-sdk-java) | [JS/TS](https://github.com/Safeheron/safeheron-api-sdk-js) | [Go](https://github.com/Safeheron/safeheron-api-sdk-go) | [Python](https://github.com/Safeheron/safeheron-api-sdk-python)
 - **API Docs**: https://docs.safeheron.com/api/en.html
 - **Safeheron Egress IPs** (for webhook/callback firewall rules): `18.162.105.64`, `18.167.22.59`, `18.167.21.182`
 
@@ -122,25 +122,19 @@ For language-specific class names and call patterns, see `references/{lang}/WALL
 
 ---
 
-## Minimal Working Example
-
-See `references/{lang}/GETTING_STARTED.md` (replace `{lang}` with `java`, `js`, `go`, or `python`)
-
----
-
 ## Reference Files
 
-> Replace `{lang}` with `java`, `js`, `go`, or `python`
+> Replace `{lang}` with `java`, `js`, `go`, or `python`. If the user's language is not clear from context, ask before reading any `{lang}` file.
 
 | Topic | File                                                                     |
 |-------|--------------------------------------------------------------------------|
-| **RSA+AES auth flow (all languages)** | **[references/AUTH.md](references/AUTH.md)**                             |
-| **Pre-launch security checklist (all languages)** | **[references/SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md)** |
-| **FAQ (all languages)** | **[references/FAQ.md](references/FAQ.md)**                |
-| **Getting Started (0 → first API call)** | **references/{lang}/GETTING_STARTED.md**                                 |
-| **Security best practices (with code examples)** | **references/{lang}/SECURITY_BEST_PRACTICES.md**                         |
-| **Policy configuration & approval tiers** | **references/{lang}/POLICY_STRATEGY.md**                                 |
-| **Deposit / withdrawal / sweep patterns** | **references/{lang}/BUSINESS_PATTERNS.md**                               |
+| RSA+AES auth flow (all languages) | [references/AUTH.md](references/AUTH.md)                             |
+| Pre-launch security checklist (all languages) | [references/SECURITY_CHECKLIST.md](references/SECURITY_CHECKLIST.md) |
+| FAQ (all languages) | [references/FAQ.md](references/FAQ.md)                |
+| Getting Started (0 → first API call) | references/{lang}/GETTING_STARTED.md                                 |
+| Security best practices (with code examples) | references/{lang}/SECURITY_BEST_PRACTICES.md                         |
+| Policy configuration & approval tiers | references/{lang}/POLICY_STRATEGY.md                                 |
+| Deposit / withdrawal / sweep patterns | references/{lang}/BUSINESS_PATTERNS.md                               |
 | SDK installation & configuration | references/{lang}/SDK_SETUP.md                                           |
 | Wallet account CRUD & coin management | references/{lang}/WALLET_API.md                                          |
 | Coin list, address validation, balance snapshot | references/{lang}/COIN_API.md                                            |

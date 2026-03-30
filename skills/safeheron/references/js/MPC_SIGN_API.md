@@ -43,8 +43,8 @@ async function pollMpcSign(mpcSignApi: MPCSignApi, txKey: string): Promise<strin
 
     console.log(`Status: ${resp.transactionStatus}, Sub: ${resp.transactionSubStatus}`);
 
-    if (resp.transactionStatus === 'FAILED' || resp.transactionStatus === 'REJECTED') {
-      throw new Error('MPC sign failed/rejected');
+    if (resp.transactionStatus === 'FAILED' || resp.transactionStatus === 'REJECTED' || resp.transactionStatus === 'CANCELLED') {
+      throw new Error('MPC sign failed/rejected/cancelled');
     }
 
     if (resp.transactionStatus === 'COMPLETED' && resp.transactionSubStatus === 'CONFIRMED') {
@@ -118,7 +118,7 @@ import { splitSignature } from '@ethersproject/bytes';
 import { MPCSignApi } from '@safeheron/api-sdk';
 import crypto from 'crypto';
 
-const provider = new providers.InfuraProvider('goerli');
+const provider = new providers.InfuraProvider('sepolia');
 const ERC20_CONTRACT_ADDRESS = '0x...';
 const ERC20_ABI = [/* standard ERC20 ABI */];
 const ERC20 = new Contract(ERC20_CONTRACT_ADDRESS, ERC20_ABI, provider);
@@ -249,6 +249,62 @@ async function tronSignMessage(mpcSignApi: MPCSignApi, accountKey: string) {
 |-------|-------|----------|
 | `"Secp256k1"` | secp256k1 | Ethereum, Bitcoin, BSC, Polygon |
 | `"Ed25519"` | Ed25519 | Solana, Near, Aptos |
+
+---
+
+## MPC Sign Status Reference
+
+| Status | Type | Description |
+|--------|------|-------------|
+| `SUBMITTED` | Initial | Task submitted and accepted by Safeheron |
+| `SIGNING` | In-progress | MPC signing in progress after approval |
+| `COMPLETED` | Final | Signature successfully completed |
+| `FAILED` | Final | Task will no longer be processed |
+| `REJECTED` | Final | Rejected by team member's approval |
+| `CANCELLED` | Final | Cancelled by team member or system |
+
+```
+SUBMITTED -> SIGNING -> COMPLETED
+                     |-- FAILED
+                     |-- REJECTED
+                     |-- CANCELLED
+```
+
+---
+
+## List MPC Sign Transactions
+
+Query MPC sign records by time range with cursor-based pagination.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `direct` | string | No | Page direction: `NEXT` (default) / `PREV` |
+| `limit` | number | No | Items per page, max 500 |
+| `fromId` | string | No | Cursor: omit on first page; pass the `txKey` of the last item from the previous page |
+| `createTimeMin` | number (ms) | No | Start of creation time range (default: `createTimeMax` minus 24 hours) |
+| `createTimeMax` | number (ms) | No | End of creation time range (default: current UTC time) |
+
+```typescript
+const list = await mpcSignApi.listMPCSignTransactions({
+  limit: 50,
+  createTimeMin: Date.now() - 86400000, // last 24h
+});
+
+for (const tx of list) {
+  console.log(tx.txKey, tx.transactionStatus);
+  for (const item of tx.dataList) {
+    console.log('  sig:', item.sig);
+  }
+}
+
+// Next page: pass txKey of the last item as fromId
+if (list.length > 0) {
+  const nextPage = await mpcSignApi.listMPCSignTransactions({
+    limit: 50,
+    fromId: list[list.length - 1].txKey,
+  });
+}
+```
 
 ---
 

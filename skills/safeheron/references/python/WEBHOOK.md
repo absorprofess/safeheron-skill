@@ -212,9 +212,55 @@ Reject all other sources at the network/firewall level, not just in application 
 
 ---
 
+## Re-push API
+
+Two methods for recovering missed webhook events:
+
+### `resend_webhook` — Re-push latest event for one transaction
+
+Re-pushes only the **most recent** webhook event for a given transaction (not full history).
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `category` | str | Yes | `TRANSACTION` / `MPC_SIGN` / `WEB3_SIGN` |
+| `txKey` | str | Yes | Transaction key |
+
+```python
+from safeheron_api_sdk_python.api.webhook_api import WebhookApi, ResendWebhookRequest
+
+webhook_api = WebhookApi(config)
+
+req = ResendWebhookRequest()
+req.category = 'TRANSACTION'
+req.txKey = 'your-tx-key'
+webhook_api.resend_webhook(req)
+```
+
+### `resend_failed` — Re-push all failed events in a time range
+
+Re-pushes every failed webhook event within a time window (max 1 hour). Rate-limited to once every 10 minutes.
+
+> **Warning:** Your handler must be idempotent. `resend_failed` may re-deliver intermediate-status events (e.g. `CONFIRMING`) even if you already received a terminal status (`COMPLETED`). Never roll back a terminal state.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `startTime` | int (ms) | Yes | Start of time range |
+| `endTime` | int (ms) | Yes | End of time range (max interval: 1 hour) |
+
+```python
+from safeheron_api_sdk_python.api.webhook_api import ResendFailedRequest
+import time
+
+failed_req = ResendFailedRequest()
+failed_req.startTime = int(time.time() * 1000) - 3600000
+failed_req.endTime = int(time.time() * 1000)
+result = webhook_api.resend_failed(failed_req)
+# result['messagesCount']: number of events triggered
+```
+
 ## Retry Schedule
 
-Safeheron retry schedule on non-200 response:
+Safeheron automatic retry schedule on non-200 response:
 `30s -> 1m -> 5m -> 1h -> 12h -> 24h` (7 total attempts, then stops)
 
 ---
@@ -230,7 +276,7 @@ The `WebhookConverter.converter()` method handles signature verification automat
 Webhook events may arrive out of order. Your handler **must never downgrade a status**:
 
 ```python
-TERMINAL_STATUSES = {'COMPLETED', 'SUCCESS', 'FAILED', 'REJECTED', 'CANCELLED'}
+TERMINAL_STATUSES = {'COMPLETED', 'SIGN_COMPLETED', 'FAILED', 'REJECTED', 'CANCELLED'}
 
 def should_update_status(current_status, new_status):
     """Terminal statuses are final -- never overwrite them."""

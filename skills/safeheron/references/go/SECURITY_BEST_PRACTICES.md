@@ -172,7 +172,7 @@ Safeheron retries delivery up to 7 times. Never double-credit a deposit or doubl
 ```go
 func isTerminalStatus(status string) bool {
     switch status {
-    case "COMPLETED", "SUCCESS", "FAILED", "REJECTED", "CANCELLED":
+    case "COMPLETED", "SIGN_COMPLETED", "FAILED", "REJECTED", "CANCELLED":
         return true
     }
     return false

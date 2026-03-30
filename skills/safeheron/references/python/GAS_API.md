@@ -63,7 +63,7 @@ for cfg in resp.get('configuration', []):
 Query gas refill records associated with a specific transaction:
 
 ```python
-resp = gas_api.gas_transactions_get_by_tx_key({'txKey': 'your-tx-key'})
+resp = gas_api.gas_transactions_ge_b_tx_key({'txKey': 'your-tx-key'})
 ```
 
 > **Note:** This endpoint works with `txKey` values from the V3 transaction API.

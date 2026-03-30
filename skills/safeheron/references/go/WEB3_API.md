@@ -233,8 +233,8 @@ err = client.SendTransaction(context.Background(), tx)
 ## Web3 Sign Status Flow
 
 ```
-SUBMITTED -> WAIT_AUDIT -> WAIT_SIGN -> SIGN_COMPLETED
-                                      |-- FAILED | REJECTED
+SUBMITTED -> SIGNING -> SIGN_COMPLETED
+                      |-- FAILED | REJECTED | CANCELLED
 ```
 
 ---

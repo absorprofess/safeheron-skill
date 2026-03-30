@@ -138,7 +138,7 @@ Web3SignResponse result = null;
 for (int i = 0; i < 60; i++) {
     result = ServiceExecutor.execute(web3Api.oneWeb3Sign(pollReq));
     String status = result.getTransactionStatus();
-    if ("SUCCESS".equalsIgnoreCase(status)
+    if ("SIGN_COMPLETED".equalsIgnoreCase(status)
             || "FAILED".equalsIgnoreCase(status)
             || "REJECTED".equalsIgnoreCase(status)
             || "CANCELLED".equalsIgnoreCase(status)) {
@@ -152,7 +152,7 @@ for (int i = 0; i < 60; i++) {
 
 ## Retrieve Signature from Response
 
-After `SUCCESS`:
+After `SIGN_COMPLETED`:
 
 ```java
 // For ethSign:
@@ -191,7 +191,7 @@ ServiceExecutor.execute(web3Api.cancelWeb3Sign(req));
 ListWeb3SignRequest req = new ListWeb3SignRequest();
 req.setLimit(20L);
 // Optional filters:
-// req.setTransactionStatus(Arrays.asList("SUCCESS"));
+// req.setTransactionStatus(Arrays.asList("SIGN_COMPLETED"));
 // req.setSubjectType("PERSONAL_SIGN");
 
 List<Web3SignResponse> list = ServiceExecutor.execute(web3Api.listWeb3Sign(req));
@@ -226,7 +226,7 @@ Own fields:
 | `txKey` | String | Safeheron sign request key |
 | `accountKey` | String | Web3 wallet account key |
 | `sourceAddress` | String | Signing address |
-| `transactionStatus` | String | `SUBMITTED`, `WAIT_AUDIT`, `WAIT_SIGN`, `SUCCESS`, `FAILED`, `REJECTED` |
+| `transactionStatus` | String | `SUBMITTED`, `SIGNING`, `SIGN_COMPLETED`, `FAILED`, `REJECTED`, `CANCELLED` |
 | `transactionSubStatus` | String | Detailed sub-status |
 | `subjectType` | String | `ETH_SIGN`, `PERSONAL_SIGN`, `ETH_SIGNTYPEDDATA`, `ETH_SIGNTRANSACTION` |
 | `customerRefId` | String | Your reference ID |
@@ -254,8 +254,8 @@ Own fields:
 ## Web3 Sign Status Flow
 
 ```
-SUBMITTED → WAIT_AUDIT → WAIT_SIGN → SUCCESS
-                                    └─ FAILED | REJECTED
+SUBMITTED → SIGNING → SIGN_COMPLETED
+                     └─ FAILED | REJECTED | CANCELLED
 ```
 
 ---

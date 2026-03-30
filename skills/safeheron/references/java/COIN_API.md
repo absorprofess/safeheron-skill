@@ -48,19 +48,25 @@ for (CoinResponse coin : coins) {
 | `coinKey` | String | Unique coin identifier (e.g. `ETHEREUM_ETH`, `BITCOIN_BTC`) |
 | `coinFullName` | String | Full name (e.g. "Ethereum") |
 | `coinName` | String | Symbol (e.g. "ETH") |
+| `symbol` | String | Coin unit display name |
 | `coinDecimal` | String | Decimal places |
+| `showCoinDecimal` | String | Displayed decimal places on Console |
+| `coinType` | String | Coin type classification |
 | `feeCoinKey` | String | Coin used for gas fees |
 | `feeUnit` | String | Fee unit name (Gwei, satoshis) |
 | `feeDecimal` | String | Fee decimal |
+| `gasLimit` | String | Default gas limit |
 | `blockChain` | String | Blockchain name |
+| `blockchainType` | String | EVM, UTXO, etc. |
 | `network` | String | Mainnet / Testnet |
 | `tokenIdentifier` | String | Contract address or NATIVE |
 | `minTransferAmount` | String | Minimum transfer amount |
-| `gasLimit` | String | Default gas limit |
+| `isMultipleAddress` | String | YES/NO — supports multiple address groups |
 | `isUtxo` | String | YES/NO — UTXO-based chain |
 | `isMemo` | String | YES/NO — Requires memo/tag |
-| `blockchainType` | String | EVM, UTXO, etc. |
 | `txRefUrl` | String | Block explorer TX URL template |
+| `addressRefUrl` | String | Block explorer address URL |
+| `logoUrl` | String | Coin logo URL |
 
 ---
 
@@ -150,7 +156,7 @@ Supports adding up to 20 coins in a single call. Adding a token automatically ad
 ```java
 CreateAccountCoinV2Request req = new CreateAccountCoinV2Request();
 req.setAccountKey("your-account-key");
-req.setCoinKeyList(Arrays.asList("USDT(ERC20)_ETHEREUM_USDT", "ETH_SEPOLIA"));
+req.setCoinKeyList(Arrays.asList("USDT(ERC20)_ETHEREUM_USDT", "ETH(SEPOLIA)_ETHEREUM_SEPOLIA"));
 
 CreateAccountCoinV2Response res = ServiceExecutor.execute(accountApi.createAccountCoinV2(req));
 for (CreateAccountCoinV2Response.CoinAddress coin : res.getCoinAddressList()) {
@@ -215,7 +221,7 @@ for (AccountCoinResponse coin : coins) {
 | Balance snapshot | `CoinApiService` | `CoinBalanceSnapshotRequest` | `List<CoinBalanceSnapshotResponse>` |
 | Block height | `CoinApiService` | `CoinBlockHeightRequest` | `List<CoinBlockHeightResponse>` |
 | Coins in maintenance | `CoinApiService` | *(none)* | `List<CoinMaintainResponse>` |
-| Add coin (V2) | `AccountApiService` | `CreateAccountCoinV2Request` | `List<CreateAccountCoinResponse>` |
+| Add coin (V2) | `AccountApiService` | `CreateAccountCoinV2Request` | `CreateAccountCoinV2Response` |
 | Add coin (V1) | `AccountApiService` | `CreateAccountCoinRequest` | `List<CreateAccountCoinResponse>` |
 | List account coins | `AccountApiService` | `ListAccountCoinRequest` | `List<AccountCoinResponse>` |
 
@@ -233,7 +239,7 @@ for (AccountCoinResponse coin : coins) {
 
 | Network | coinKey Example | Notes |
 |---------|----------------|-------|
-| Ethereum Sepolia | `ETH_SEPOLIA` | Test faucet tokens available |
+| Ethereum Sepolia | `ETH(SEPOLIA)_ETHEREUM_SEPOLIA` | Test faucet tokens available |
 | Bitcoin Testnet | `BITCOIN_BTC_TESTNET` | Faucet: https://coinfaucet.eu/en/btc-testnet4/ |
 | TRON Shasta | TRON testnet coinKey | TLK token available on Shasta |
 
@@ -245,6 +251,6 @@ Test token contracts (Ethereum Sepolia):
 
 ## Best Practices
 
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`, `TRON_TRX`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`, `TRON_TRX`.
 - Always validate addresses with `checkCoinAddress` before sending funds or adding to whitelist.
 - Team-level balance: use `coinBalanceSnapshot`. Per-account balance: use `listAccountCoin`.

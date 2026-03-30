@@ -32,7 +32,7 @@ Policies control the approval workflow for every transaction. A misconfigured po
 | 4 | Policy attack simulation performed: attempt to send to a non-whitelisted address via API, initiate from an unauthorized API Key, exceed policy amount limits — confirm that all are blocked |
 | 5 | Policy review with Safeheron CSM completed (Safeheron offers 1:1 video policy review sessions before go-live) |
 
-See [POLICY_STRATEGY.md](POLICY_STRATEGY.md) for recommended policy configurations.
+See `references/{lang}/POLICY_STRATEGY.md` for recommended policy configurations.
 
 ---
 

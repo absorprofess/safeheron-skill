@@ -85,7 +85,7 @@ fmt.Printf("TxHash: %s\n", resp.TxHash)
 ```go
 req := api.ListTransactionsV2Request{
     Limit:             20,
-    TransactionStatus: "SUCCESS",     // optional filter
+    TransactionStatus: "COMPLETED",   // optional filter
     CoinKey:           "ETHEREUM_ETH", // optional filter
 }
 
@@ -135,7 +135,7 @@ if err := transactionApi.CancelTransactions(req, &resp); err != nil {
 }
 ```
 
-> Only transactions in `WAIT_AUDIT` or `WAIT_SIGN` status can be cancelled.
+> Only transactions in `SUBMITTED` or `SIGNING` status can be cancelled.
 
 ---
 
@@ -162,11 +162,11 @@ newTxKey := resp.TxKey
 | Status | Description |
 |--------|-------------|
 | `SUBMITTED` | Received by Safeheron |
-| `WAIT_AUDIT` | Pending policy / manual approval |
-| `WAIT_SIGN` | Approved, pending MPC signing |
+| `SIGNING` | MPC signing in progress — entered after approval by team members or API Co-Signer |
 | `BROADCASTING` | Submitted to blockchain |
-| `PENDING` | On-chain, awaiting confirmations |
-| `SUCCESS` | Confirmed on-chain |
+| `CONFIRMING` | On-chain, awaiting block confirmations |
+| `COMPLETED` | Confirmed on-chain — assets successfully transferred |
+| `CANCELLED` | Final state — transaction cancelled by team member or system |
 | `FAILED` | Transaction failed |
 | `REJECTED` | Rejected by approver |
 
@@ -174,15 +174,15 @@ newTxKey := resp.TxKey
 
 ```
 SUBMITTED
-    -> WAIT_AUDIT
-    -> WAIT_SIGN
+    -> SIGNING
     -> BROADCASTING
-    -> PENDING
-    -> SUCCESS
+    -> CONFIRMING
+    -> COMPLETED
     |-- FAILED
 
-    At WAIT_AUDIT or WAIT_SIGN:
+    At SUBMITTED or SIGNING:
     -> REJECTED (denied by approver)
+    -> CANCELLED (cancelled by team member)
 ```
 
 ---
@@ -214,6 +214,6 @@ SUBMITTED
 1. Always set `CustomerRefId` from your own DB record ID before calling create.
 2. Store the returned `TxKey` -- it is Safeheron's unique identifier.
 3. Monitor status via **Webhook** (preferred) and call `/v1/transactions/one` periodically as fallback.
-4. Credit/debit accounts only on `SUCCESS` status.
+4. Credit/debit accounts only on `COMPLETED` status.
 5. All amounts are **strings** (e.g. `"0.05"`) -- never use float.
 6. On timeout, **retry with the same `CustomerRefId`** -- Safeheron returns the original tx (idempotency). Error code `9001` means the refId already exists.

@@ -19,7 +19,7 @@ from safeheron_api_sdk_python.api.coin_api import (
 )
 from safeheron_api_sdk_python.api.account_api import (
     AccountApi,
-    CreateAccountCoinV2Request,
+    CreateAccountCoinRequestV2,
     CreateAccountCoinRequest,
     ListAccountCoinRequest,
 )
@@ -51,16 +51,25 @@ for coin in coins:
 | `coinKey` | str | Unique coin identifier (e.g. `ETHEREUM_ETH`, `BITCOIN_BTC`) |
 | `coinFullName` | str | Full name (e.g. "Ethereum") |
 | `coinName` | str | Symbol (e.g. "ETH") |
+| `symbol` | str | Coin unit display name |
 | `coinDecimal` | str | Decimal places |
+| `showCoinDecimal` | str | Displayed decimal places on Console |
+| `coinType` | str | Coin type classification |
 | `feeCoinKey` | str | Coin used for gas fees |
 | `feeUnit` | str | Fee unit name (Gwei, satoshis) |
+| `feeDecimal` | str | Fee decimal |
+| `gasLimit` | str | Default gas limit |
 | `blockChain` | str | Blockchain name |
+| `blockchainType` | str | EVM, UTXO, etc. |
 | `network` | str | Mainnet / Testnet |
 | `tokenIdentifier` | str | Contract address or NATIVE |
 | `minTransferAmount` | str | Minimum transfer amount |
+| `isMultipleAddress` | str | YES/NO -- supports multiple address groups |
 | `isUtxo` | str | YES/NO -- UTXO-based chain |
 | `isMemo` | str | YES/NO -- Requires memo/tag |
-| `blockchainType` | str | EVM, UTXO, etc. |
+| `txRefUrl` | str | Block explorer TX URL template |
+| `addressRefUrl` | str | Block explorer address URL |
+| `logoUrl` | str | Coin logo URL |
 
 ---
 
@@ -147,9 +156,9 @@ maintained = coin_api.list_coin_maintain()
 Supports adding up to 20 coins in a single call. Adding a token automatically adds its parent mainnet coin.
 
 ```python
-param = CreateAccountCoinV2Request()
+param = CreateAccountCoinRequestV2()
 param.accountKey = "your-account-key"
-param.coinKeyList = ["USDT(ERC20)_ETHEREUM_USDT", "ETH_SEPOLIA"]
+param.coinKeyList = ["USDT(ERC20)_ETHEREUM_USDT", "ETH(SEPOLIA)_ETHEREUM_SEPOLIA"]
 
 resp = account_api.create_account_coin_v2(param)
 for coin in resp.get('coinAddressList', []):
@@ -190,7 +199,7 @@ for coin in coins:
 
 | Network | coinKey Example | Notes |
 |---------|----------------|-------|
-| Ethereum Sepolia | `ETH_SEPOLIA` | Test faucet tokens available |
+| Ethereum Sepolia | `ETH(SEPOLIA)_ETHEREUM_SEPOLIA` | Test faucet tokens available |
 | Bitcoin Testnet | `BITCOIN_BTC_TESTNET` | Faucet: https://coinfaucet.eu/en/btc-testnet4/ |
 | TRON Shasta | TRON testnet coinKey | TLK token available on Shasta |
 
@@ -202,6 +211,6 @@ Test token contracts (Ethereum Sepolia):
 
 ## Best Practices
 
-- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH_SEPOLIA`, `TRON_TRX`.
+- `coinKey` format examples: `ETHEREUM_ETH`, `BITCOIN_BTC`, `USDT(ERC20)_ETHEREUM_USDT`, `ETH(SEPOLIA)_ETHEREUM_SEPOLIA`, `TRON_TRX`.
 - Always validate addresses with `check_coin_address` before sending funds or adding to whitelist.
 - Team-level balance: use `coin_balance_snapshot`. Per-account balance: use `list_account_coin`.

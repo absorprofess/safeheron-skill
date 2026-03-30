@@ -12,11 +12,11 @@ When a transaction requires approval, Safeheron calls your **Approval Callback S
 
 ```
 1. Client creates transaction / MPC sign / Web3 sign
-2. Safeheron: transaction enters WAIT_AUDIT status
+2. Safeheron: transaction enters SUBMITTED status
 3. API Co-Signer polls Safeheron (every 5s in v2.x, every 1s in v1.x)
 4. API Co-Signer calls your Approval Callback Service (HTTP POST)
 5. Your service returns APPROVE or REJECT
-6. Transaction proceeds (WAIT_SIGN) or is REJECTED
+6. Transaction proceeds to SIGNING or is REJECTED
 ```
 
 **Approval Callback timeout:** Response timestamp must be within **5 seconds** of the API Co-Signer server's current time.

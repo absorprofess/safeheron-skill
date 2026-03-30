@@ -238,6 +238,57 @@ print(f"tx_hash: {on_chain_hash}")
 
 ---
 
+## MPC Sign Status Reference
+
+| Status | Type | Description |
+|--------|------|-------------|
+| `SUBMITTED` | Initial | Task submitted and accepted by Safeheron |
+| `SIGNING` | In-progress | MPC signing in progress after approval |
+| `COMPLETED` | Final | Signature successfully completed |
+| `FAILED` | Final | Task will no longer be processed |
+| `REJECTED` | Final | Rejected by team member's approval |
+| `CANCELLED` | Final | Cancelled by team member or system |
+
+```
+SUBMITTED -> SIGNING -> COMPLETED
+                     |-- FAILED
+                     |-- REJECTED
+                     |-- CANCELLED
+```
+
+---
+
+## List MPC Sign Transactions
+
+Query MPC sign records by time range with cursor-based pagination.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `direct` | str | No | Page direction: `NEXT` (default) / `PREV` |
+| `limit` | int | No | Items per page, max 500 |
+| `fromId` | str | No | Cursor: omit on first page; pass the `txKey` of the last item from the previous page |
+| `createTimeMin` | int (ms) | No | Start of creation time range (default: `createTimeMax` minus 24 hours) |
+| `createTimeMax` | int (ms) | No | End of creation time range (default: current UTC time) |
+
+```python
+req = ListMPCSignTransactionsRequest()
+req.limit = 50
+req.createTimeMin = int(time.time() * 1000) - 86400000  # last 24h
+
+result = mpc_sign_api.list_mpc_sign_transactions(req)
+for tx in result:
+    print(tx['txKey'], tx['transactionStatus'])
+    for item in tx.get('dataList', []):
+        print('  sig:', item['sig'])
+
+# Next page: pass txKey of the last item as fromId
+if result:
+    req.fromId = result[-1]['txKey']
+    next_page = mpc_sign_api.list_mpc_sign_transactions(req)
+```
+
+---
+
 ## Best Practices
 
 - The MPCSign policy is also required before use -- contact Safeheron Support to enable.

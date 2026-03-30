@@ -196,7 +196,7 @@ async function processWebhookEvent(event: any) {
 }
 
 function isTerminalStatus(status: string): boolean {
-  return ['COMPLETED', 'SUCCESS', 'FAILED', 'REJECTED', 'CANCELLED'].includes(status);
+  return ['COMPLETED', 'SIGN_COMPLETED', 'FAILED', 'REJECTED', 'CANCELLED'].includes(status);
 }
 ```
 

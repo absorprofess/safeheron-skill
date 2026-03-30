@@ -202,7 +202,6 @@ func main() {
     // -- Step 3: Create a wallet account --
     createReq := api.CreateAccountRequest{
         AccountName: "my-first-wallet",
-        HiddenOnUI:  false,
     }
     var createResp api.CreateAccountResponse
     if err := accountApi.CreateAccount(createReq, &createResp); err != nil {
@@ -213,7 +212,7 @@ func main() {
     // -- Step 4: Add coin to the wallet --
     addCoinReq := api.AddCoinRequest{
         AccountKey: createResp.AccountKey,
-        CoinKey:    "ETH_GOERLI",
+        CoinKey:    "ETH(SEPOLIA)_ETHEREUM_SEPOLIA",
     }
     var addCoinResp api.AddCoinResponse
     if err := accountApi.AddCoin(addCoinReq, &addCoinResp); err != nil {
@@ -270,4 +269,5 @@ Total wallets: 1
 | Auto-approve transactions | [COSIGNER.md](COSIGNER.md) |
 | MPC raw signing | [MPC_SIGN_API.md](MPC_SIGN_API.md) |
 | Web3 wallet signing | [WEB3_API.md](WEB3_API.md) |
+| Authentication details | [AUTH.md](../AUTH.md) |
 | Error codes & troubleshooting | [ERROR_CODES.md](ERROR_CODES.md) |

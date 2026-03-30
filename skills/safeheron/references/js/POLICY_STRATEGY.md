@@ -79,7 +79,9 @@ app.post('/cosigner/callback', async (req, res) => {
   }
 
   // 3. Verify amount matches what the user requested
-  if (parseFloat(tx.txAmount) !== parseFloat(order.expectedAmount)) {
+  // Compare as strings: Safeheron normalizes txAmount (e.g. "0.001"); store
+  // expectedAmount in the same format when you create the withdrawal order.
+  if (tx.txAmount !== order.expectedAmount) {
     console.warn(`REJECT: amount mismatch for ${tx.customerRefId}`);
     const resp = converter.responseV3convert({ action: 'REJECT', approvalId: tx.approvalId });
     return res.json(resp);

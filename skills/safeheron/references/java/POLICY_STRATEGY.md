@@ -161,9 +161,8 @@ For the manual external transfer policy, maintain a whitelist of approved extern
 // Create a whitelist entry
 CreateWhitelistRequest req = new CreateWhitelistRequest();
 req.setWhitelistName("Cold Storage — BTC Main");
-req.setCoinKey("BITCOIN_BTC");
+req.setChainType("Bitcoin");
 req.setAddress("bc1q...");
-req.setNote("Internal cold storage wallet");
 
 CreateWhitelistResponse resp = ServiceExecutor.execute(whitelistApi.createWhitelist(req));
 String whitelistKey = resp.getWhitelistKey();

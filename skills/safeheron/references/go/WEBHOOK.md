@@ -224,7 +224,51 @@ func main() {
 
 ## Re-push API
 
-Safeheron retry schedule on non-200 response:
+Two methods for recovering missed webhook events:
+
+### `ResendWebhook` — Re-push latest event for one transaction
+
+Re-pushes only the **most recent** webhook event for a given transaction (not full history).
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `Category` | string | Yes | `TRANSACTION` / `MPC_SIGN` / `WEB3_SIGN` |
+| `TxKey` | string | Yes | Transaction key |
+
+```go
+webhookApi := api.WebhookApi{Client: sc}
+
+resendReq := api.ResendWebhookRequest{
+    Category: "TRANSACTION",
+    TxKey:    "your-tx-key",
+}
+var resendResp api.ResultResponse
+err := webhookApi.ResendWebhook(resendReq, &resendResp)
+```
+
+### `ResendFailed` — Re-push all failed events in a time range
+
+Re-pushes every failed webhook event within a time window (max 1 hour). Rate-limited to once every 10 minutes.
+
+> **Warning:** Your handler must be idempotent. `ResendFailed` may re-deliver intermediate-status events (e.g. `CONFIRMING`) even if you already received a terminal status (`COMPLETED`). Never roll back a terminal state.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `StartTime` | int64 (ms) | Yes | Start of time range |
+| `EndTime` | int64 (ms) | Yes | End of time range (max interval: 1 hour) |
+
+```go
+now := time.Now().UnixMilli()
+failedReq := api.ResendFailedRequest{
+    StartTime: now - 3600000,
+    EndTime:   now,
+}
+var failedResp api.MessagesCountResponse
+err = webhookApi.ResendFailed(failedReq, &failedResp)
+// failedResp.MessagesCount: number of events triggered
+```
+
+Safeheron automatic retry schedule on non-200 response:
 `30s -> 1m -> 5m -> 1h -> 12h -> 24h` (7 total attempts, then stops)
 
 ---
@@ -247,7 +291,7 @@ Configure your webhook server to **only accept connections from**:
 ```go
 func shouldUpdateStatus(currentStatus, newStatus string) bool {
     terminalStatuses := map[string]bool{
-        "COMPLETED": true, "SUCCESS": true, "FAILED": true,
+        "COMPLETED": true, "SIGN_COMPLETED": true, "FAILED": true,
         "REJECTED": true, "CANCELLED": true,
     }
     if terminalStatuses[currentStatus] {
