@@ -25,7 +25,7 @@ When a transaction requires approval, Safeheron calls your **Approval Callback S
 
 ## Approval Callback Request
 
-Safeheron sends an **encrypted HTTP POST** to your callback URL. The request body structure is identical to webhook payloads:
+Safeheron sends an **encrypted HTTP POST** to your callback URL.
 
 ```json
 {
