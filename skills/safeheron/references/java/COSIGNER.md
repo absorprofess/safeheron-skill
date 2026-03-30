@@ -217,7 +217,7 @@ private boolean shouldApprove(TransactionApproval req) {
 | Cancel transaction in DB | Automatic | Manual SQL required |
 | Config management | Secrets Manager (recommended) + .env | Config file |
 
-**Old version** required a separate `biz_callback` (callback URL) and `biz_pubkey` (your public key) in the config file. The new version only requires registering `biz_pubkey` in the Web console.
+**Old version** requires configuring the public keys `biz_pubkey` and `api_privkey` in two pairs of public and private keys in the configuration file. The new version only requires registering `biz_pubkey` in the Web console.
 
 ---
 
