@@ -12,11 +12,11 @@ When a transaction requires approval, Safeheron calls your **Approval Callback S
 
 ```
 1. Client creates transaction / MPC sign / Web3 sign
-2. Safeheron: transaction enters WAIT_AUDIT status
+2. Safeheron: transaction enters SUBMITTED status
 3. API Co-Signer polls Safeheron (every 5s in v2.x, every 1s in v1.x)
 4. API Co-Signer calls your Approval Callback Service (HTTP POST)
 5. Your service returns APPROVE or REJECT
-6. Transaction proceeds (WAIT_SIGN) or is REJECTED
+6. Transaction proceeds to SIGNING or is REJECTED
 ```
 
 **Approval Callback timeout:** Response timestamp must be within **5 seconds** of the API Co-Signer server's current time.
@@ -31,10 +31,8 @@ Safeheron sends an **encrypted HTTP POST** to your callback URL. The request bod
 {
   "timestamp": "1623038312088",
   "sig":        "<signed-with-cosigner-identity-private-key-base64>",
-  "key":        "<RSA-encrypted-AES-key-base64>",
   "bizContent": "<AES-encrypted-callback-payload-base64>",
-  "rsaType":    "ECB_OAEP",
-  "aesType":    "GCM_NOPADDING"
+  "version":    "v3"
 }
 ```
 
@@ -45,9 +43,8 @@ Safeheron sends an **encrypted HTTP POST** to your callback URL. The request bod
   ```bash
   sudo ./cosigner export-public-key
   ```
-- The `key` field is encrypted with your **Callback Public Key** (the public key uploaded when registering the callback URL in Console).
-- Decrypt using the corresponding **Callback Private Key** (stored on your callback service).
-
+- The API Co-Signer, acting as the client of the Approval Callback Service, sends a POST request and signs the request data using its private key.
+- Upon receiving the request, the Approval Callback Service uses the API Co-Signer's public key to authenticate the request data, ensuring that the request originates from the API Co-Signer.
 ---
 
 ## Decrypted Callback Payload Structure
@@ -144,17 +141,15 @@ Your callback service must return an **encrypted response** using the same AES+R
 
 ```json
 {
-  "approveStatus": "APPROVE",
-  "customerRefId": "<echo-back-from-request>",
-  "rejectReason":  ""
+  "action": "APPROVE",
+  "approvalId": "tx*******"
 }
 ```
 
 | Field | Type | Values |
 |-------|------|--------|
-| `approveStatus` | String | `APPROVE` or `REJECT` |
-| `customerRefId` | String | Echo back the incoming `customerRefId` |
-| `rejectReason` | String | Optional reason when rejecting |
+| `action` | String | `APPROVE` or `REJECT` |
+| `approvalId` | String | Echo back the incoming `txKey` |
 
 ---
 
@@ -222,7 +217,7 @@ private boolean shouldApprove(TransactionApproval req) {
 | Cancel transaction in DB | Automatic | Manual SQL required |
 | Config management | Secrets Manager (recommended) + .env | Config file |
 
-**Old version** required a separate `biz_callback` (callback URL) and `biz_pubkey` (your public key) in the config file. The new version consolidates this into a single key pair registered in Web Console.
+**Old version** required a separate `biz_callback` (callback URL) and `biz_pubkey` (your public key) in the config file. The new version only requires registering `biz_pubkey` in the Web console.
 
 ---
 
@@ -245,8 +240,8 @@ sudo ./cosigner export-public-key   # Export Co-Signer identity public key
 |-----|-------|---------|
 | **Co-Signer Identity Private Key** | Safeheron (Co-Signer internal) | Signs callback requests sent to your service |
 | **Co-Signer Identity Public Key** | Exported via `export-public-key` | You use this to verify callback request signatures |
-| **Callback Public Key** | You generate & upload to Console | Safeheron Co-Signer encrypts the callback `key` field with this |
-| **Callback Private Key** | You hold securely | Your callback service uses this to decrypt the AES key |
+| **Callback Public Key** | You generate & upload to Console | Safeheron Co-Signer needs to use this public key to verify the signature in the Callback's response data |
+| **Callback Private Key** | You hold securely | Your callback service needs to use this private key to sign the Callback response body |
 
 ---
 
@@ -256,7 +251,7 @@ sudo ./cosigner export-public-key   # Export Co-Signer identity public key
 |-------|-------|------------|
 | `Illegal IP` in logs | Co-Signer host IP not in API Key whitelist | Add IP to whitelist in Console, restart Co-Signer |
 | `The final private key fragment is not exists` | Co-Signer not yet activated | Normal — proceed with activation workflow |
-| Transaction stays in `WAIT_AUDIT` | Co-Signer not running or not polling | Check `./cosigner logs -f` for errors |
+| Transaction stays in `SUBMITTED` | Co-Signer not running or not polling | Check `./cosigner logs -f` for errors |
 | `Timestamp out of range` | Server clock skew > 5s | Sync Co-Signer server time with NTP |
 | Docker login failure | Token expired or firewall blocks `registry.gitlab.com` | Re-download CLI from Console; check firewall rules |
 
@@ -288,7 +283,7 @@ These requirements apply to the server where API Co-Signer is deployed. Non-comp
 | Control | Description |
 |---------|-------------|
 | Network isolation | Deploy Co-Signer in a **private isolated network**. No public internet inbound access |
-| IP whitelist | Only the Safeheron API gateway and your internal systems can reach the Co-Signer host |
+| IP whitelist | Only your internal systems can reach the Co-Signer host |
 | MFA (host login) | All host access requires MFA |
 | CWPP | Cloud Workload Protection Platform — real-time threat monitoring on the Co-Signer instance |
 | EDR/XDR | Endpoint/Extended Detection & Response — continuous threat detection and automated response |
