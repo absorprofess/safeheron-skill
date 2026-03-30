@@ -1,6 +1,6 @@
 # safeheron-skill
 
-**AI Skill for Safeheron MPC Custody API** — Works with Claude Code and Cursor
+**AI Skill for Safeheron API** — Works with Claude Code and Cursor
 
 > Use natural language to generate, debug, and troubleshoot Safeheron API integrations. No more digging through docs.
 
@@ -71,7 +71,7 @@ Once installed, try these in Claude Code or Cursor:
 
 ## Resources
 
-- [Safeheron API Docs](https://docs.safeheron.com/api/en.html)
+- [Safeheron API](https://docs.safeheron.com/api/en.html)
 - [Java SDK GitHub](https://github.com/Safeheron/safeheron-api-sdk-java)
 - [Safeheron Console](https://www.safeheron.com)
 
